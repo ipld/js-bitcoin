@@ -2,7 +2,7 @@
 
 const test = it
 const { assert } = require('chai')
-const multiformats = require('multiformats')()
+const multiformats = require('multiformats').create()
 const { setupMultiformats, setupBlocks, fixtureNames, toHex, roundDifficulty } = require('./util')
 
 describe('header', () => {

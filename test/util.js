@@ -1,5 +1,5 @@
 const { Buffer } = require('buffer')
-const base32 = require('multiformats/bases/base32')
+const base32 = require('multiformats/bases/base32.js')
 const bitcoin = require('../')
 const { fromHashHex } = require('bitcoin-block')
 const fixtures = require('./fixtures')

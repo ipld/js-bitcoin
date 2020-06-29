@@ -3,7 +3,7 @@
 const test = it
 const { assert } = require('chai')
 const fs = require('fs')
-const multiformats = require('multiformats')()
+const multiformats = require('multiformats').create()
 multiformats.add(require('@ipld/dag-cbor'))
 const CarDatastore = require('datastore-car')(multiformats)
 const fixtures = require('./fixtures')

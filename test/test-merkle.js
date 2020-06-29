@@ -3,7 +3,7 @@
 const test = it
 const { Buffer } = require('buffer')
 const { assert } = require('chai')
-const multiformats = require('multiformats')()
+const multiformats = require('multiformats').create()
 const bitcoinTx = require('../src/bitcoin-tx')
 const bitcoinWitnessCommitment = require('../src/bitcoin-witness-commitment')
 const {

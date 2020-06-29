@@ -2,7 +2,7 @@
 
 const test = it
 const { assert } = require('chai')
-const multiformats = require('multiformats')()
+const multiformats = require('multiformats').create()
 const bitcoinTx = require('../src/bitcoin-tx')
 const {
   setupMultiformats,

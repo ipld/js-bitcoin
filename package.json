@@ -7,7 +7,7 @@
   "scripts": {
     "test": "mocha test/test-*.js",
     "pretest": "standard",
-		"docs": "jsdoc4readme --readme src/bitcoin.js src/complete.js src/bitcoin-block.js src/bitcoin-tx.js"
+    "docs": "jsdoc4readme --readme src/bitcoin.js src/complete.js src/bitcoin-block.js src/bitcoin-tx.js"
   },
   "repository": {
     "type": "git",
@@ -25,10 +25,10 @@
   "dependencies": {
     "bitcoin-block": "^1.3.0",
     "buffer": "^5.6.0",
-    "multiformats": "github:rvagg/js-multiformats#rvagg/tmp-deleteme"
+    "multiformats": "^1.1.11"
   },
   "devDependencies": {
-    "@ipld/dag-cbor": "github:ipld/js-dag-cbor#multiformats",
+    "@ipld/dag-cbor": "^1.1.3",
     "chai": "^4.2.0",
     "datastore-car": "github:ipld/js-datastore-car#rvagg/multiformats",
     "jsdoc4readme": "^1.3.0",

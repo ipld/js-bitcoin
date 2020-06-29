@@ -1,6 +1,6 @@
 const { Buffer } = require('buffer')
 const { BitcoinTransaction, fromHashHex, merkle } = require('bitcoin-block')
-const { toHex } = require('multiformats/bytes')
+const { toHex } = require('multiformats/bytes.js')
 const dblSha2256 = require('./dbl-sha2-256').encode
 const { HASH_ALG, CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT_CODE } = require('./constants')
 const NULL_HASH = Buffer.alloc(32)
