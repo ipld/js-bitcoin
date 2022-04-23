@@ -1,29 +1,26 @@
 /* eslint-env mocha */
 
-const test = it
-const { Buffer } = require('buffer')
-const { assert } = require('chai')
-const multiformats = require('multiformats').create()
-const bitcoinTx = require('../src/bitcoin-tx')
-const bitcoinWitnessCommitment = require('../src/bitcoin-witness-commitment')
-const {
-  setupMultiformats,
+import { assert } from 'chai'
+import { CID, bytes } from 'multiformats'
+import * as bitcoinTxCodec from '../src/bitcoin-tx.js'
+import * as bitcoinWitnessCommitmentCodec from '../src/bitcoin-witness-commitment.js'
+import {
   setupBlocks,
   txHashToCid,
   findWitnessCommitment,
-  fixtureNames,
-  toHex
-} = require('./util')
+  fixtureNames
+} from './util.js'
+
+const { toHex } = bytes
 
 describe('merkle', () => {
   let blocks
 
   before(async () => {
-    setupMultiformats(multiformats)
-    blocks = await setupBlocks(multiformats)
+    blocks = await setupBlocks()
   })
 
-  async function verifyMerkle (name, witness) {
+  function verifyMerkle (name, witness) {
     // how many nodes of this merkle do we expect to see?
     let expectedNodes = blocks[name].data.tx.length
     let last = expectedNodes
@@ -44,10 +41,10 @@ describe('merkle', () => {
     }
 
     let witnessCommitment = null
-    for await (const { cid, binary } of bitcoinTx[witness ? 'encodeAll' : 'encodeAllNoWitness'](multiformats, blocks[name].data)) {
-      assert(Buffer.isBuffer(binary))
+    for (const { cid, bytes } of bitcoinTxCodec[witness ? 'encodeAll' : 'encodeAllNoWitness'](blocks[name].data)) {
+      assert(bytes instanceof Uint8Array)
 
-      const decoded = await multiformats.decode(binary, 'bitcoin-tx')
+      const decoded = bitcoinTxCodec.decode(bytes)
       const baseLayer = index < blocks[name].data.tx.length
 
       if (baseLayer) {
@@ -62,42 +59,42 @@ describe('merkle', () => {
         }
         if (witness || !txidExpected) {
           // not segwit, encoded block should be identical
-          assert.strictEqual(binary.length, end - start, `got expected block length (${index})`)
-          expectedCid = txHashToCid(multiformats, hashExpected)
+          assert.strictEqual(bytes.length, end - start, `got expected block length (${index})`)
+          expectedCid = txHashToCid(hashExpected)
           let actual = decoded
           if (index === 0 && name === '450002') {
             // special case block, faux witness commitment we have to contend with
-            assert(decoded.witnessCommitment && decoded.witnessCommitment.buffer && decoded.witnessCommitment.code) // is CID
+            assert(decoded.witnessCommitment && decoded.witnessCommitment.bytes && decoded.witnessCommitment.code) // is CID
             actual = Object.assign({}, decoded)
             delete actual.witnessCommitment
           }
           assert.deepEqual(actual, blocks[name].data.tx[index], 'transaction decoded back into expected form')
         } else {
-          assert(binary.length < end - start - 2, `got approximate expected block length (${binary.length}, ${end - start}`)
-          expectedCid = txHashToCid(multiformats, txidExpected)
+          assert(bytes.length < end - start - 2, `got approximate expected block length (${bytes.length}, ${end - start}`)
+          expectedCid = txHashToCid(txidExpected)
         }
         assert.deepEqual(cid, expectedCid, 'got expected transaction CID')
       } else {
         // one of the inner or root merkle nodes
-        assert.strictEqual(binary.length, 64, 'correct binary form')
+        assert.strictEqual(bytes.length, 64, 'correct binary form')
         assert(Array.isArray(decoded), 'correct decoded form')
         assert.strictEqual(decoded.length, 2, 'correct decoded form')
 
-        const left = binary.slice(0, 32)
-        const right = binary.slice(32)
+        const left = bytes.subarray(0, 32)
+        const right = bytes.subarray(32)
 
         // now we do an awkward dance to verify the two nodes in the block were CIDs in the correct position
         // of the previous layer, accounting for duplicates on odd layers
-        // debug: process.stdout.write(binary.slice(0, 3).toString('hex') + ',' + binary.slice(32, 32 + 3).toString('hex') + ',')
+        // debug: process.stdout.write(bytes.slice(0, 3).toString('hex') + ',' + bytes.slice(32, 32 + 3).toString('hex') + ',')
         let lastLeft = lastLayer[thisLayer.length * 2]
         if (witness && layer === 1 && thisLayer.length === 0) {
           // account for the missing coinbase in non-segwit merkle
           assert.strictEqual(decoded[0], null, 'decoded form coinbase hash left element is correct')
-          lastLeft = Buffer.alloc(32)
+          lastLeft = new Uint8Array(32)
         } else {
-          assert.deepEqual(decoded[0], txHashToCid(multiformats, toHex(left)), 'decoded form left CID is correct')
+          assert.deepEqual(decoded[0], txHashToCid(toHex(left)), 'decoded form left CID is correct')
         }
-        assert.deepEqual(decoded[1], txHashToCid(multiformats, toHex(right)), 'decoded form right CID is correct')
+        assert.deepEqual(decoded[1], txHashToCid(toHex(right)), 'decoded form right CID is correct')
         assert.deepEqual(left, lastLeft, `left element in layer ${layer} node is CID in layer ${layer - 1}`)
         // debug: process.stdout.write(`${thisLayer.length} <> ${thisLayer.length * 2} : ${lastLayer.length} : ${thisLayerLength} `)
         // debug: process.stdout.write(`${left.slice(0, 6).toString('hex')} <> ${lastLayer[thisLayer.length * 2].slice(0, 6).toString('hex')} `)
@@ -111,7 +108,7 @@ describe('merkle', () => {
         // debug: process.stdout.write('\n')
       }
 
-      thisLayer.push(multiformats.multihash.decode(cid.multihash).digest)
+      thisLayer.push(cid.multihash.digest)
 
       index++
       lastCid = cid
@@ -139,26 +136,26 @@ describe('merkle', () => {
       before(() => {
         expectedWitnessCommitment = findWitnessCommitment(blocks[name].data)
         if (!expectedWitnessCommitment) {
-          // this isn't done inside a test() but it's a sanity check on our fixture data, not the test data
+          // this isn't done inside a it() but it's a sanity check on our fixture data, not the test data
           assert(!blocks[name].meta.segwit, 'non-segwit block shouldn\'t have witness commitment, all others should')
         }
       })
 
-      test('encode transactions into no-witness merkle', async () => {
-        const { witnessCommitment } = await verifyMerkle(name, false)
+      it('encode transactions into no-witness merkle', () => {
+        const { witnessCommitment } = verifyMerkle(name, false)
         if (!blocks[name].meta.segwit && name !== '450002') { // 450002 is the special-case faux segwit
           assert.isUndefined(witnessCommitment, 'no witness commitment for non-witness merkle')
         } else {
-          assert(multiformats.CID.isCID(witnessCommitment), 'witness commitment exists and is a CID')
+          assert(CID.asCID(witnessCommitment), 'witness commitment exists and is a CID')
           assert.strictEqual(witnessCommitment.code, 0xb2, 'witness commitment CID is correct')
-          const wcmh = multiformats.multihash.decode(witnessCommitment.multihash)
+          const wcmh = witnessCommitment.multihash
           assert.strictEqual(wcmh.code, 0x56, 'witness commitment CID has correct hash alg')
           assert.deepEqual(wcmh.digest, expectedWitnessCommitment, 'witness commitment CID has correct hash')
         }
       })
 
-      test('encode transactions into segwit merkle & witness commitment', async () => {
-        let { root, witnessCommitment } = await verifyMerkle(name, true)
+      it('encode transactions into segwit merkle & witness commitment', () => {
+        let { root, witnessCommitment } = verifyMerkle(name, true)
 
         // witness commitment
         assert.strictEqual(witnessCommitment, null, 'shouldn\'t find a witness commitment in the full-witness merkle')
@@ -177,27 +174,26 @@ describe('merkle', () => {
           }
         }
 
-        const { cid, binary } =
-          await bitcoinWitnessCommitment.encodeWitnessCommitment(multiformats, blocks[name].data, root)
-        const hash = multiformats.multihash.decode(cid.multihash).digest
+        const { cid, bytes } = bitcoinWitnessCommitmentCodec.encodeWitnessCommitment(blocks[name].data, root)
+        const hash = cid.multihash.digest
         assert.strictEqual(toHex(hash), toHex(expectedWitnessCommitment), 'got expected witness commitment')
-        assert.strictEqual(binary.length, 64, 'correct block length')
+        assert.strictEqual(bytes.length, 64, 'correct block length')
         // most blocks have a null nonce (all zeros), Bitcoin Core does NULL nonces but it's not a strict
         // requirement so some blocks have novel bytes
         let expectedNonce = ''.padStart(64, '0')
         if (name === '525343') { // block with non null nonce
           expectedNonce = '5b5032506f6f6c5d5b5032506f6f6c5d5b5032506f6f6c5d5b5032506f6f6c5d'
         }
-        assert.deepEqual(toHex(binary.slice(32)), expectedNonce)
+        assert.deepEqual(toHex(bytes.subarray(32)), expectedNonce)
 
-        const decoded = multiformats.decode(binary, 'bitcoin-witness-commitment')
+        const decoded = bitcoinWitnessCommitmentCodec.decode(bytes)
         assert.strictEqual(typeof decoded, 'object', 'correct decoded witness commitment form')
-        assert(Buffer.isBuffer(decoded.nonce), 'correct decoded witness commitment form')
+        assert(decoded.nonce instanceof Uint8Array, 'correct decoded witness commitment form')
         if (blocks[name].data.tx.length === 1) {
           // special case, only a coinbase, no useful merkle root
           assert.strictEqual(decoded.witnessMerkleRoot, null)
         } else {
-          assert(multiformats.CID.isCID(decoded.witnessMerkleRoot), 'correct decoded witness commitment form')
+          assert(CID.asCID(decoded.witnessMerkleRoot), 'correct decoded witness commitment form')
         }
       })
     })

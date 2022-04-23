@@ -1,11 +1,9 @@
-module.exports = {
-  HASH_ALG: 'dbl-sha2-256',
-  HASH_ALG_CODE: 0x56,
-  CODEC_BLOCK: 'bitcoin-block',
-  CODEC_BLOCK_CODE: 0xb0,
-  CODEC_TX: 'bitcoin-tx',
-  CODEC_TX_CODE: 0xb1,
-  CODEC_WITNESS_COMMITMENT: 'bitcoin-witness-commitment',
-  CODEC_WITNESS_COMMITMENT_CODE: 0xb2,
-  SEGWIT_BLOCKTIME: 1503539857
-}
+export const HASH_ALG = 'dbl-sha2-256'
+export const HASH_ALG_CODE = 0x56
+export const CODEC_BLOCK = 'bitcoin-block'
+export const CODEC_BLOCK_CODE = 0xb0
+export const CODEC_TX = 'bitcoin-tx'
+export const CODEC_TX_CODE = 0xb1
+export const CODEC_WITNESS_COMMITMENT = 'bitcoin-witness-commitment'
+export const CODEC_WITNESS_COMMITMENT_CODE = 0xb2
+export const SEGWIT_BLOCKTIME = 1503539857
