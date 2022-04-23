@@ -1,66 +1,66 @@
 /* eslint-env mocha */
 
-const test = it
-const { assert } = require('chai')
-const fs = require('fs')
-const multiformats = require('multiformats').create()
-multiformats.add(require('@ipld/dag-cbor'))
-const CarDatastore = require('datastore-car')(multiformats)
-const fixtures = require('./fixtures')
-const { setupMultiformats, setupBlocks, roundDifficulty, cleanBlock } = require('./util')
-const bitcoin = require('../')
+import { assert } from 'chai'
+import { bytes, CID } from 'multiformats'
+import fs from 'fs'
+import { Readable } from 'stream'
+import { CarIndexer, CarReader, CarWriter } from '@ipld/car'
+import * as fixtures from './fixtures.js'
+import { setupBlocks, roundDifficulty, cleanBlock } from './util.js'
+import * as bitcoin from '../src/bitcoin.js'
+
+const { toHex } = bytes
 
 describe('formats', () => {
   let blocks
 
   before(async () => {
-    setupMultiformats(multiformats)
-    blocks = await setupBlocks(multiformats)
+    blocks = await setupBlocks()
   })
 
   describe('hash to CID utilities', () => {
-    test('blockHashToCID', () => {
+    it('blockHashToCID', () => {
       for (const name of fixtures.names) {
-        let actual = bitcoin.blockHashToCID(multiformats, fixtures.meta[name].hash)
+        let actual = bitcoin.blockHashToCID(fixtures.meta[name].hash)
         assert.deepEqual(actual.toString(), fixtures.meta[name].cid)
         if (name !== 'genesis') {
-          actual = bitcoin.blockHashToCID(multiformats, blocks[name].data.previousblockhash)
+          actual = bitcoin.blockHashToCID(blocks[name].data.previousblockhash)
           assert.deepEqual(actual.toString(), fixtures.meta[name].parentCid)
         }
       }
     })
 
-    test('txHashToCID', () => {
+    it('txHashToCID', () => {
       for (const name of fixtures.names) {
-        const actual = bitcoin.txHashToCID(multiformats, blocks[name].data.merkleroot)
+        const actual = bitcoin.txHashToCID(blocks[name].data.merkleroot)
         assert.deepEqual(actual.toString(), fixtures.meta[name].txCid)
       }
     })
 
-    test('cidToHash', () => {
+    it('cidToHash', () => {
       for (const name of fixtures.names) {
-        let actual = bitcoin.cidToHash(multiformats, fixtures.meta[name].cid)
+        let actual = bitcoin.cidToHash(fixtures.meta[name].cid)
         assert.deepEqual(actual.toString(), fixtures.meta[name].hash)
         if (name !== 'genesis') {
-          actual = bitcoin.cidToHash(multiformats, fixtures.meta[name].parentCid)
+          actual = bitcoin.cidToHash(fixtures.meta[name].parentCid)
           assert.deepEqual(actual.toString(), blocks[name].data.previousblockhash)
         }
       }
 
       for (const name of fixtures.names) {
-        const actual = bitcoin.cidToHash(multiformats, fixtures.meta[name].txCid)
+        const actual = bitcoin.cidToHash(fixtures.meta[name].txCid)
         assert.deepEqual(actual.toString(), blocks[name].data.merkleroot)
       }
     })
   })
 
-  describe('convertBitcoinBinary', () => {
+  describe('convertBitcoinBytes', () => {
     for (const name of fixtures.names) {
-      test(name, async () => {
-        let { data: expected, raw } = await fixtures(name)
+      it(name, async () => {
+        let { data: expected, raw } = await fixtures.loadFixture(name)
         expected = roundDifficulty(cleanBlock(expected))
 
-        let actual = bitcoin.deserializeFullBitcoinBinary(raw)
+        let actual = bitcoin.deserializeFullBitcoinBytes(raw)
         actual = roundDifficulty(actual)
 
         // test transactions separately and then header so any failures don't result in
@@ -78,11 +78,11 @@ describe('formats', () => {
 
   describe('convertBitcoinPorcelain', () => {
     for (const name of fixtures.names) {
-      test(name, async () => {
-        const { data, raw: expected } = await fixtures(name)
+      it(name, async () => {
+        const { data, raw: expected } = await fixtures.loadFixture(name)
 
-        const actual = bitcoin.serializeFullBitcoinBinary(data)
-        assert.strictEqual(actual.toString('hex'), expected.toString('hex'), 'got same binary form')
+        const actual = bitcoin.serializeFullBitcoinBytes(data)
+        assert.strictEqual(bytes.toHex(actual), bytes.toHex(expected), 'got same binary form')
       })
     }
   })
@@ -91,16 +91,23 @@ describe('formats', () => {
     this.timeout(10000)
 
     for (const name of fixtures.names) {
-      test(name, async () => {
-        let { data: expected, meta, raw } = await fixtures(name)
+      it(name, async () => {
+        let { data: expected, meta, raw } = await fixtures.loadFixture(name)
 
         expected = roundDifficulty(cleanBlock(expected))
-        const blockCid = new multiformats.CID(meta.cid)
-
-        // write
-        const outStream = fs.createWriteStream(`${name}.car`)
-        const writeDs = await CarDatastore.writeStream(outStream)
-        const rootCid = await bitcoin.blockToCar(multiformats, writeDs, expected)
+        const blockCid = CID.parse(meta.cid)
+        let writer
+        let rootCid
+        for await (const { cid, bytes } of bitcoin.encodeAll(expected)) {
+          if (!writer) {
+            rootCid = cid
+            const writable = CarWriter.create([cid])
+            writer = writable.writer
+            Readable.from(writable.out).pipe(fs.createWriteStream(`${name}.car`))
+          }
+          await writer.put({ cid, bytes })
+        }
+        await writer.close()
         assert.deepStrictEqual(rootCid.toString(), blockCid.toString())
 
         // read
@@ -109,11 +116,10 @@ describe('formats', () => {
         const index = {}
         let blockCount = 0
         const inStream = fs.createReadStream(`${name}.car`)
-        const indexer = await CarDatastore.indexer(inStream)
-        assert(Array.isArray(indexer.roots))
-        assert.strictEqual(indexer.roots.length, 1)
-        assert.deepStrictEqual(indexer.roots[0].toString(), blockCid.toString())
-        for await (const blockIndex of indexer.iterator) {
+        const indexer = await CarIndexer.fromIterable(inStream)
+        assert.strictEqual((await indexer.getRoots()).length, 1)
+        assert.deepStrictEqual((await indexer.getRoots())[0].toString(), blockCid.toString())
+        for await (const blockIndex of indexer) {
           index[blockIndex.cid.toString()] = blockIndex
           blockCount++
         }
@@ -129,12 +135,12 @@ describe('formats', () => {
             throw new Error(`Block not found: [${cid.toString()}]`)
           }
           reads++
-          const block = await CarDatastore.readRaw(fd, blockIndex)
-          return block.binary
+          const block = await CarReader.readRaw(fd, blockIndex)
+          return block.bytes
         }
 
         // perform the reassemble!
-        let { deserialized: actual, binary } = await bitcoin.assemble(multiformats, loader, blockCid)
+        let { deserialized: actual, bytes } = await bitcoin.assemble(loader, blockCid)
         actual = roundDifficulty(actual)
 
         // test transactions separately and then header so any failures don't result in
@@ -155,7 +161,7 @@ describe('formats', () => {
         }
         assert.strictEqual(failedReads, 0)
 
-        assert.strictEqual(binary.toString('hex'), raw.toString('hex'), 're-encoded full binary form matches')
+        assert.strictEqual(toHex(bytes), toHex(raw), 're-encoded full binary form matches')
 
         await fd.close()
       })

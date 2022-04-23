@@ -1,28 +1,22 @@
-const { Buffer } = require('buffer')
-const base32 = require('multiformats/bases/base32.js')
-const bitcoin = require('../')
-const { fromHashHex } = require('bitcoin-block')
-const fixtures = require('./fixtures')
+import { CID, bytes } from 'multiformats'
+import * as Digest from 'multiformats/hashes/digest'
+import { fromHashHex } from 'bitcoin-block'
+import * as fixtures from './fixtures.js'
 
-const CODEC_TX_CODE = 0xb1
+export const CODEC_TX_CODE = 0xb1
 const CODEC_WITNESS_COMMITMENT_CODE = 0xb2
 // the begining of a dbl-sha2-256 multihash, prepend to hash or txid
 const MULTIHASH_DBLSHA2256_LEAD = '5620'
 
-function setupMultiformats (multiformats) {
-  multiformats.multibase.add(base32)
-  multiformats.add(bitcoin)
+export function txHashToCid (hash) {
+  return CID.create(1, CODEC_TX_CODE, Digest.decode(bytes.fromHex(`${MULTIHASH_DBLSHA2256_LEAD}${hash}`)))
 }
 
-function txHashToCid (multiformats, hash) {
-  return new multiformats.CID(1, CODEC_TX_CODE, Buffer.from(`${MULTIHASH_DBLSHA2256_LEAD}${hash}`, 'hex'))
+export function witnessCommitmentHashToCid (hash) {
+  return CID.create(1, CODEC_WITNESS_COMMITMENT_CODE, Digest.decode(bytes.fromHex(`${MULTIHASH_DBLSHA2256_LEAD}${hash}`)))
 }
 
-function witnessCommitmentHashToCid (multiformats, hash) {
-  return new multiformats.CID(1, CODEC_WITNESS_COMMITMENT_CODE, Buffer.from(`${MULTIHASH_DBLSHA2256_LEAD}${hash}`, 'hex'))
-}
-
-function cleanBlock (block) {
+export function cleanBlock (block) {
   block = Object.assign({}, block)
   // chain-context data that can't be derived
   'confirmations chainwork height mediantime nextblockhash'.split(' ').forEach((p) => delete block[p])
@@ -30,7 +24,7 @@ function cleanBlock (block) {
 }
 
 // round difficulty to 2 decimal places, it's a calculated value
-function roundDifficulty (obj) {
+export function roundDifficulty (obj) {
   const ret = Object.assign({}, obj)
   ret.difficulty = Math.round(obj.difficulty * 100) / 100
   return ret
@@ -44,17 +38,17 @@ function blockDataToHeader (block) {
 }
 
 let blocks = null
-async function setupBlocks (multiformats) {
+export async function setupBlocks () {
   if (blocks) {
     return blocks
   }
   blocks = {}
 
   for (const name of fixtures.names) {
-    blocks[name] = await fixtures(name)
+    blocks[name] = await fixtures.loadFixture(name)
     blocks[name].expectedHeader = blockDataToHeader(blocks[name].data)
-    blocks[name].expectedHeader.parent = blocks[name].meta.parentCid ? new multiformats.CID(blocks[name].meta.parentCid) : null
-    blocks[name].expectedHeader.tx = new multiformats.CID(blocks[name].meta.txCid)
+    blocks[name].expectedHeader.parent = blocks[name].meta.parentCid ? CID.parse(blocks[name].meta.parentCid) : null
+    blocks[name].expectedHeader.tx = CID.parse(blocks[name].meta.txCid)
     if (blocks[name].data.tx[0].txid !== blocks[name].data.tx[0].hash) {
       // is segwit transaction, add default txinwitness, see
       // https://github.com/bitcoin/bitcoin/pull/18826 for why this is missing
@@ -69,7 +63,7 @@ async function setupBlocks (multiformats) {
       for (const vin of tx.vin) {
         if (vin.txid) {
           // this value comes out of the json, so it's already a BE hash string, we need to reverse it
-          vin.tx = txHashToCid(multiformats, fromHashHex(vin.txid).toString('hex'))
+          vin.tx = txHashToCid(bytes.toHex(fromHashHex(vin.txid)))
         }
       }
     }
@@ -81,29 +75,14 @@ async function setupBlocks (multiformats) {
 // manually find the witness commitment inside the coinbase.
 // it's in _one of_ the vout's, one that's 38 bytes long and starts with a special prefix
 // which we need to strip out to find a 32-byte hash
-function findWitnessCommitment (block) {
+export function findWitnessCommitment (block) {
   const coinbase = block.tx[0]
   for (const vout of coinbase.vout) {
     const spk = vout.scriptPubKey.hex
     if (spk.length === 38 * 2 && spk.startsWith('6a24aa21a9ed')) {
-      return Buffer.from(spk.slice(12), 'hex')
+      return bytes.fromHex(spk.slice(12))
     }
   }
 }
 
-function toHex (d) {
-  return d.reduce((hex, byte) => hex + byte.toString(16).padStart(2, '0'), '')
-}
-
-module.exports = {
-  setupMultiformats,
-  txHashToCid,
-  witnessCommitmentHashToCid,
-  setupBlocks,
-  findWitnessCommitment,
-  fixtureNames: fixtures.names,
-  cleanBlock,
-  roundDifficulty,
-  CODEC_TX_CODE,
-  toHex
-}
+export const fixtureNames = fixtures.names

@@ -1,4 +1,4 @@
-module.exports = [
+export const fixture = [
   ['0be96bafa71d1d66097b6fab792c8475e02250c2e196f351219af494d9eef65e', null, 83, 234],
   ['f9791a3dc74649c69ff80e696e2db639bda422780a15a3e2f5c6cb85887201fe', null, 234, 491],
   ['2528a28be5dcb1b751fffa988487b6d3220a4d1454ea9dc67321dc9c025f5b63', null, 491, 716],
