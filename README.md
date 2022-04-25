@@ -2,62 +2,102 @@
 
 **JavaScript Bitcoin data multiformats codecs and utilities for IPLD**
 
-![CI](https://github.com/rvagg/js-bitcoin/workflows/CI/badge.svg)
-
 ## About
 
-This codec is intended to be used with **[multiformats](https://github.com/multiformats/js-multiformats)** and **[@ipld/block](https://github.com/ipld/js-block)**. It provides decode and encode functionality for the Bitcoin native format to and from IPLD.
+This codec is intended to be used with **[multiformats](https://github.com/multiformats/js-multiformats)**. It provides decode and encode functionality for the Bitcoin native format to and from IPLD.
 
-The primary usage of this library is as a codec added to a `multiformats` object:
+The following IPLD codecs are available; they each support `encode()` and `decode()` functionality compatible with the multiformats `BlockCodec` type.
+
+## Codecs
+
+### `bitcoin-block`
+
+`bitcoin-block` / `0xb0` is the Bitcoin block **header**, commonly identified by "Bitcoin block identifiers" (hashes with leading zeros).
 
 ```js
-const multiformats = require('multiformats')()
-multiformats.add(require('@ipld/bitcoin'))
+import * as bitcoinBlock from '@ipld/bitcoin/block'
 ```
 
-The following multicodecs are registered:
+### `bitcoin-tx`
 
-* `bitcoin-block` / `0xb0`: The Bitcoin block header, commonly identified by "Bitcoin block identifiers" (hashes with leading zeros).
-* `bitcoin-tx` / `0xb1`: Bitcoin transactions _and_ nodes in a binary merkle tree, the tip of which is referenced by the Bitcoin block header.
-* `bitcoin-witness-commitment` / `0xb2`: The Bitcoin witness commitment that is used to reference transactions with intact witness data (a complication introduced by [SegWit](https://en.wikipedia.org/wiki/SegWit)).
+`bitcoin-tx` / `0xb1` are Bitcoin transactions _and_ nodes in a binary merkle tree, the tip of which is referenced by the Bitcoin block header.
 
-These multicodecs support `encode()` and `decode()` functionality through `multiformats`.
+```js
+import * as bitcoinTx from '@ipld/bitcoin/tx'
+```
 
-The following multihash is registered:
+###  `bitcoin-witness-commitment`
 
-* `dbl-sha2-256` / `0x56`: A double SHA2-256 hash: `SHA2-256(SHA2-256(bytes))`, used natively across all Bitcoin blocks, forming block identifiers, transaction identifiers and hashes and binary merkle tree nodes.
+`bitcoin-witness-commitment` / `0xb2` is the Bitcoin witness commitment that is used to reference transactions with intact witness data (a complication introduced by [SegWit](https://en.wikipedia.org/wiki/SegWit)).
 
-In addition to the multiformats codecs and hash, utilities are also provided to convert between Bitcoin hash identifiers and CIDs and to convert to and from full Bitcoin raw block data to a full collection of IPLD blocks. Additional conversion functionality for bitcoin raw data and the `bitcoin-cli` JSON format is provided by the **[bitcoin-block](https://github.com/rvagg/js-bitcoin-block)** library.
+```js
+import * as bitcoinWitnessCommitment from '@ipld/bitcoin/witness-commitment'
+```
+
+## Hasher
+
+The following multihash is available, compatible with the multiformats `MultihashHasher` type.
+
+###  `dbl-sha2-256`
+
+`dbl-sha2-256` / `0x56` is a double SHA2-256 hash: `SHA2-256(SHA2-256(bytes))`, used natively across all Bitcoin blocks, forming block identifiers, transaction identifiers and hashes and binary merkle tree nodes.
+
+```js
+import * as dblSha2256 from '@ipld/bitcoin/dbl-sha2-256'
+```
+
+## Utilities
+
+In addition to the multiformats codecs and hasher, utilities are also provided to convert between Bitcoin hash identifiers and CIDs and to convert to and from full Bitcoin raw block data to a full collection of IPLD blocks. Additional conversion functionality for bitcoin raw data and the `bitcoin-cli` JSON format is provided by the **[bitcoin-block](https://github.com/rvagg/js-bitcoin-block)** library.
 
 See the **API** section below for details on the additional utility functions.
 
-The previous incarnation of the Bitcoin codec for IPLD can be found at <https://github.com/ipld/js-ipld-bitcoin>.
-
 ## Example
 
+This example reads Bitcoin IPLD blocks from a CAR file; assuming that CAR contains a complete (enough) graph representing a Bitcoin block (whose identifier is supplied as the second argument) and its transactions, it navigates to the first transaction (the Coinbase) and prints the `scriptSig` as UTF-8. This is often used to store arbitrary messages and other "graffiti".
+
+Running this example on the Genesis block (CAR provided in this project: example-genesis.car) produces the following output:
+
+```
+$ node example.js ./example-genesis.car 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
+��EThe Times 03/Jan/2009 Chancellor on brink of second bailout for banks
+```
+
 ```js
-const multiformats = require('multiformats/basics')
-multiformats.add(require('@ipld/bitcoin'))
-const CarDatastore = require('datastore-car')(multiformats)
+import fs from 'fs'
+import * as bitcoinBlock from '@ipld/bitcoin/block'
+import * as bitcoinTx from '@ipld/bitcoin/tx'
+import { CarReader } from '@ipld/car'
 
-const carDs = await CarDatastore.readFileComplete('/path/to/bundle/of/blocks.car')
-const headerCid = ipldBitcoin.blockHashToCID(multiformats, hash)
-const header = multiformats.decode(await carDs.get(headerCid), 'bitcoin-block')
+// Assumes a CAR with at least one full Bitcoin block represented as IPLD blocks
+// and a "blockId" which is the commonly used Bitcoin block identifier (32-byte
+// digest in hexadecimal, with leading zeros).
+async function run (pathToCar, blockId) {
+  const reader = await CarReader.fromIterable(fs.createReadStream(pathToCar))
+  const headerCid = bitcoinBlock.blockHashToCID(blockId)
+  const header = bitcoinBlock.decode((await reader.get(headerCid)).bytes)
 
-// navigate the transaction binary merkle tree to the first transaction, the coinbase
-let txCid = header.tx
-let tx
-while (true) {
-	tx = multiformats.decode(await carDs.get(txCid), 'bitcoin-tx')
-	if (!Array.isArray(tx)) { // is not an inner merkle tree node
-		break
-	}
-	txCid = tx[0] // leftmost side of the tx binary merkle
+  // navigate the transaction binary merkle tree to the first transaction, the coinbase,
+  // which will be at the leftmost side of the tree.
+  let txCid = header.tx
+  let tx
+  while (true) {
+    tx = bitcoinTx.decode((await reader.get(txCid)).bytes)
+    if (!Array.isArray(tx)) { // is not an inner merkle tree node
+      break
+    }
+    txCid = tx[0] // leftmost side of the tx binary merkle
+  }
+
+  // convert the scriptSig to UTF-8 and cross our fingers that there's something
+  // interesting in there
+  console.log(Buffer.from(tx.vin[0].coinbase, 'hex').toString('utf8'))
 }
 
-// convert the scriptSig to UTF-8 and cross our fingers that there's something
-// interesting in there
-console.log(Buffer.from(tx.vin[0].coinbase, 'hex').toString('utf8'))
+run(process.argv[2], process.argv[3]).catch((err) => {
+  console.error(err.stack)
+  process.exit(1)
+})
 ```
 
 ## API

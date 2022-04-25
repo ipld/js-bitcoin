@@ -7,6 +7,8 @@ import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT, CODEC_WITNESS_COMMIT
  * @template T
  * @typedef {import('multiformats/codecs/interface').ByteView<T>} ByteView
 */
+/** @typedef {import('bitcoin-block/classes/Block').BlockPorcelain} BlockPorcelain */
+/** @typedef {import('./interface').BitcoinWitnessCommitment} BitcoinWitnessCommitment */
 
 const NULL_HASH = new Uint8Array(32)
 
@@ -18,6 +20,11 @@ const NULL_HASH = new Uint8Array(32)
  *
  */
 
+/**
+ * @param {import('bitcoin-block/classes/Block').BlockPorcelain} deserialized
+ * @param {CID|null} witnessMerkleRoot
+ * @returns {{cid:CID, bytes:Uint8Array}|null}
+ */
 export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
   if (typeof deserialized !== 'object' || !Array.isArray(deserialized.tx)) {
     throw new TypeError('deserialized argument must be a Bitcoin block representation')
@@ -36,7 +43,15 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
     merkleRootHash = witnessMerkleRoot
   } else {
     // CID
-    merkleRootHash = CID.asCID(witnessMerkleRoot).multihash.digest
+    const mrhcid = CID.asCID(witnessMerkleRoot)
+    if (mrhcid == null) {
+      throw new TypeError('Expected witnessMerkleRoot to be a CID')
+    }
+    merkleRootHash = mrhcid.multihash.digest
+  }
+
+  if (typeof deserialized.tx[0] !== 'object') {
+    throw new TypeError('Can only encode from a complete bitcoin block (complete transactions)')
   }
 
   const coinbase = BitcoinTransaction.fromPorcelain(deserialized.tx[0])
@@ -51,8 +66,14 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
   // the hash we should get at the end, for sanity, but we have to go through the
   // additional effort just to get the binary form of it
   const expectedWitnessCommitment = coinbase.getWitnessCommitment()
+  if (expectedWitnessCommitment == null) {
+    throw new TypeError('Expected a witness commitment in the segwit coinbase, did not find one')
+  }
 
   const nonce = coinbase.getWitnessCommitmentNonce()
+  if (nonce == null) {
+    throw new TypeError('Expected a witness commitment nonce in the segwit coinbase, did not find one')
+  }
   const bytes = new Uint8Array(64)
   bytes.set(merkleRootHash, 0)
   bytes.set(nonce, 32)
@@ -70,36 +91,35 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
 }
 
 /**
- * @template T
- * @param {T} node
- * @returns {ByteView<T>}
+ * @param {BitcoinWitnessCommitment} node
+ * @returns {ByteView<BitcoinWitnessCommitment>}
  */
-export function encode (obj) {
-  if (typeof obj !== 'object') {
+export function encode (node) {
+  if (typeof node !== 'object') {
     throw new TypeError('bitcoin-witness-commitment must be an object')
   }
-  if (!(obj.nonce instanceof Uint8Array)) {
+  if (!(node.nonce instanceof Uint8Array)) {
     throw new TypeError('bitcoin-witness-commitment must have a `nonce` Buffer')
   }
-  const witnessMerkleRoot = CID.asCID(obj.witnessMerkleRoot)
+  const witnessMerkleRoot = CID.asCID(node.witnessMerkleRoot)
   if (!witnessMerkleRoot) {
     throw new TypeError('bitcoin-witness-commitment must have a `witnessMerkleRoot` CID')
   }
-  if (obj.witnessMerkleRoot.code !== CODEC_TX_CODE) {
+  if (node.witnessMerkleRoot !== null && node.witnessMerkleRoot.code !== CODEC_TX_CODE) {
     throw new TypeError(`bitcoin-witness-commitment \`witnessMerkleRoot\` must be of type \`${CODEC_TX}\``)
   }
   // nonce + multihash decode
-  const witnessHash = witnessMerkleRoot.multihash.digest
   const encoded = new Uint8Array(64)
-  encoded.set(witnessHash, 0)
-  encoded.set(obj.nonce, 32)
+  if (node.witnessMerkleRoot !== null) {
+    encoded.set(witnessMerkleRoot.multihash.digest, 0)
+  }
+  encoded.set(node.nonce, 32)
   return encoded
 }
 
 /**
- * @template T
- * @param {ByteView<T>} data
- * @returns {T}
+ * @param {ByteView<BitcoinWitnessCommitment>} data
+ * @returns {BitcoinWitnessCommitment}
  */
 export function decode (data) {
   if (!(data instanceof Uint8Array && data.constructor.name === 'Uint8Array')) {
@@ -122,10 +142,19 @@ export function decode (data) {
 export const name = CODEC_WITNESS_COMMITMENT
 export const code = CODEC_WITNESS_COMMITMENT_CODE
 
+/**
+ * @param {Uint8Array} bytes
+ * @returns {boolean}
+ */
 function isNullHash (bytes) {
   return isSameBytes(bytes, NULL_HASH)
 }
 
+/**
+ * @param {Uint8Array} bytes1
+ * @param {Uint8Array} bytes2
+ * @returns {boolean}
+ */
 function isSameBytes (bytes1, bytes2) {
   if (bytes1.length !== bytes2.length) {
     return false

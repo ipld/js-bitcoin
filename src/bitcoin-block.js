@@ -9,30 +9,31 @@ import { CODEC_BLOCK, CODEC_BLOCK_CODE, CODEC_TX_CODE } from './constants.js'
 */
 
 /**
- * @template T
- * @param {T} node
- * @returns {ByteView<T>}
+ * @typedef {import('./interface').BitcoinHeader} BitcoinHeader
+ */
+
+/**
+ * @param {BitcoinHeader} node
+ * @returns {ByteView<BitcoinHeader>}
  */
 export function encode (node) {
   if (typeof node !== 'object') {
     throw new TypeError('Can only encode() an object')
   }
-  const porc = Object.assign({}, node)
-  delete porc.tx
+  const porc = Object.assign({}, node, { tx: null })
   return BitcoinBlock.fromPorcelain(porc).encode()
 }
 
 /**
- * @template T
- * @param {ByteView<T>} data
- * @returns {T}
+ * @param {ByteView<BitcoinHeader>} data
+ * @returns {BitcoinHeader}
  */
 export function decode (data) {
   if (!(data instanceof Uint8Array)) {
     throw new TypeError('Can only decode() a Uint8Array')
   }
 
-  const deserialized = BitcoinBlock.decodeHeaderOnly(data, true).toPorcelain()
+  const deserialized = /** @type {any} */ (BitcoinBlock.decodeHeaderOnly(data, true).toPorcelain())
 
   // insert links derived from native hash hex strings
   if (deserialized.previousblockhash) {
@@ -57,7 +58,7 @@ export const code = CODEC_BLOCK_CODE
  * The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-block` multicodec. This process is reversable, see {@link cidToHash}.
  *
  * @param {string} blockHash a string form of a block hash
- * @returns {object} a CID object representing this block identifier.
+ * @returns {CID} a CID object representing this block identifier.
  */
 export function blockHashToCID (blockHash) {
   if (typeof blockHash !== 'string') {
