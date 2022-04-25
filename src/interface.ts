@@ -2,6 +2,8 @@ import { TransactionInCoinbasePorcelain, TransactionInPorcelain } from 'bitcoin-
 import { BlockHeaderPorcelain, TransactionPorcelain } from 'bitcoin-block/interface'
 import { CID } from 'multiformats';
 
+export type IPLDLoader = (cid:CID)=>Promise<Uint8Array>
+
 export interface BitcoinHeader extends BlockHeaderPorcelain {
   parent: CID|null
   tx: CID

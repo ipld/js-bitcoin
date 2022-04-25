@@ -12,12 +12,15 @@ import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT_CODE } from './consta
 /** @typedef {import('./interface').BitcoinTransaction} BitcoinTransaction */
 /** @typedef {import('./interface').BitcoinTransactionMerkleNode} BitcoinTransactionMerkleNode */
 
+/** @ignore */
 const NULL_HASH = new Uint8Array(32)
 
 /**
  * @param {TransactionPorcelain} node
  * @param {BitcoinBlockTransaction.HASH_NO_WITNESS} [noWitness]
  * @returns {{transaction:BitcoinBlockTransaction, bytes:Uint8Array}}
+ * @ignore
+ * @private
  */
 function _encode (node, noWitness) {
   if (typeof node !== 'object') {
@@ -29,6 +32,14 @@ function _encode (node, noWitness) {
 }
 
 /**
+ * **`bitcoin-tx` / `0xb1` codec**: Encodes an IPLD node representing a
+ * Bitcoin transaction object into byte form.
+ *
+ * Note that a `bitcoin-tx` IPLD node can either be a full transaction with or
+ * without SegWit data, or an intermediate transaction Merkle tree node; in
+ * which case it is simply an array of two CIDs.
+ *
+ * @name BitcoinTransaction.encode()
  * @param {BitcoinTransaction|BitcoinTransactionMerkleNode} node
  * @returns {ByteView<BitcoinTransaction|BitcoinTransactionMerkleNode>}
  */
@@ -46,10 +57,16 @@ export function encode (node) {
     bytes.set(rightCid.multihash.digest, 32)
     return /** @type {ByteView<BitcoinTransactionMerkleNode>} */ (bytes)
   }
-  return /** @type {ByteView<BitcoinTransaction>} */ (_encode(/** @type {BitcoinTransaction} */ (node)).bytes)
+  return (_encode(/** @type {BitcoinTransaction} */ (node)).bytes)
 }
 
 /**
+ * Same as {@link BitcoinTransaction.encode()} but will explictly exclude any
+ * witness (SegWit) data from the output. This is necessary for encoding SegWit
+ * blocks since transactions must be stored both with and without witness data
+ * to correctly represent the full content addressed structure.
+ *
+ * @name BitcoinTransaction.encodeNoWitness()
  * @param {BitcoinTransaction} node
  * @returns {ByteView<BitcoinTransaction>}
  */
@@ -64,6 +81,8 @@ export function encodeNoWitness (node) {
  * @param {BlockPorcelain} deserialized
  * @param {BitcoinBlockTransaction.HASH_NO_WITNESS} [noWitness]
  * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @private
+ * @ignore
  */
 function * _encodeAll (deserialized, noWitness) {
   if (typeof deserialized !== 'object' || !Array.isArray(deserialized.tx)) {
@@ -82,7 +101,13 @@ function * _encodeAll (deserialized, noWitness) {
     if (typeof deserialized.tx[ii] !== 'object') {
       throw new TypeError('Cannot encode incomplete block data (must be full object, not string)')
     }
-    const { transaction, bytes } = _encode(/** @type {TransactionPorcelain} */ (deserialized.tx[ii]), noWitness)
+    const tx =
+    /**
+       * @ignore
+       * @type {TransactionPorcelain}
+       */
+    (deserialized.tx[ii])
+    const { transaction, bytes } = _encode(tx, noWitness)
     const mh = dblSha2256.digest(bytes)
     const cid = CID.create(1, CODEC_TX_CODE, mh)
     yield { cid, bytes, transaction } // base tx
@@ -102,6 +127,15 @@ function * _encodeAll (deserialized, noWitness) {
 }
 
 /**
+ * Encodes all transactions in a complete `BlockPorcelain` (see the
+ * `bitcoin-block` npm package for details on this type) representation of an
+ * entire Bitcoin transaction; including intermediate Merkle tree nodes.
+ *
+ * Intermediate Merkle tree nodes won't have the `transaction` property on the
+ * output as they aren't full transactions and their `bytes` will have a length
+ * of 64.
+ *
+ * @name BitcoinTransaction.encodeAll()
  * @param {BlockPorcelain} obj
  * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
@@ -110,6 +144,11 @@ export function * encodeAll (obj) {
 }
 
 /**
+ * Same as {@link BitcoinTransaction.encodeAll()} but only encodes non-SegWit
+ * transaction data, that is, transactions without witness data and no secondary
+ * SegWit transactions Merkle tree.
+ *
+ * @name BitcoinTransaction.encodeAllNoWitness()
  * @param {BlockPorcelain} obj
  * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
@@ -118,6 +157,15 @@ export function * encodeAllNoWitness (obj) {
 }
 
 /**
+ * **`bitcoin-block` / `0xb0` codec**: Decodes a bytes form of a Bitcoin
+ * transaction into an IPLD node representation.
+ *
+ * Note that a `bitcoin-tx` IPLD node can either be a full transaction with or
+ * without SegWit data, or an intermediate transaction Merkle tree node; in
+ * which case it is simply an array of two CIDs. As byte form, an intermediate
+ * Merkle tree node is a fixed 64-bytes.
+ *
+ * @name BitcoinTransaction.decode()
  * @param {ByteView<BitcoinTransaction|BitcoinTransactionMerkleNode>} data
  * @returns {BitcoinTransaction|BitcoinTransactionMerkleNode}
  */
@@ -130,7 +178,10 @@ export function decode (data) {
   // even if length==64. So we should _try_ to decode the tx to see if it might be one.
   // But, in the witness merkle, the lowest, left-most, non-leaf node contains 32-bytes
   // of leading zeros and this makes the bytes decodeable into transaction form
-  /** @type {BitcoinBlockTransaction|null} */
+  /**
+   * @type {BitcoinBlockTransaction|null}
+   * @ignore
+   */
   let tx = null
   if (data.length !== 64 || !isNullHash(data.subarray(0, 32))) {
     try {
@@ -149,7 +200,10 @@ export function decode (data) {
 
   if (tx == null && data.length === 64) {
     // is some kind of merkle node
-    /** @type {Uint8Array|null} */
+    /**
+     * @type {Uint8Array|null}
+     * @ignore
+     */
     let left = data.subarray(0, 32)
     const right = data.subarray(32)
     if (isNullHash(left)) { // in the witness merkle, the coinbase is replaced with 0x00..00
@@ -189,7 +243,15 @@ export function decode (data) {
   return deserialized
 }
 
+/**
+ * **`bitcoin-tx` / `0xb1` codec**: the codec name
+ * @name BitcoinTransaction.name
+ */
 export const name = CODEC_TX
+/**
+ * **`bitcoin-tx` / `0xb1` codec**: the codec name
+ * @name BitcoinTransaction.name
+ */
 export const code = CODEC_TX_CODE
 
 /**
@@ -199,6 +261,7 @@ export const code = CODEC_TX_CODE
  *
  * @param {string} txHash a string form of a transaction hash
  * @returns {CID} A CID (`multiformats.CID`) object representing this transaction identifier.
+ * @name BitcoinTransaction.txHashToCID()
  */
 export function txHashToCID (txHash) {
   if (typeof txHash !== 'string') {
@@ -211,6 +274,7 @@ export function txHashToCID (txHash) {
 /**
  * @param {Uint8Array} bytes
  * @returns {boolean}
+ * @ignore
  */
 function isNullHash (bytes) {
   if (bytes.length !== 32) {

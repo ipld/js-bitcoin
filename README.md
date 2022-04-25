@@ -100,117 +100,329 @@ run(process.argv[2], process.argv[3]).catch((err) => {
 })
 ```
 
+## Usage
+
+In the API docs below, the names denote the export locations, such that they may be obtained by the following:
+
+```js
+// The whole bundle (note this object also includes additional properties that
+// can be used to access all the others)
+import * as Bitcoin from '@ipld/bitcoin'
+// the `bitcoin-block` / `0xb0` codec
+import * as BitcoinBlock from '@ipld/bitcoin/block'
+// the `bitcoin-tx` / `0xb1` codec
+import * as BitcoinTransaction from '@ipld/bitcoin/tx'
+// the `bitcoin-witness-commitment` / `0xb2` codec
+import * as BitcoinWitnessCommitment from '@ipld/bitcoin/witness-commitment'
+// the `dbl-sha2-256` / `0x56` multihasher
+import * as DblSha2256 from '@ipld/bitcoin/dbl-sha2-256'
+```
+
 ## API
 
 ### Contents
 
- * [`deserializeFullBitcoinBinary(binary)`](#deserializeFullBitcoinBinary)
- * [`serializeFullBitcoinBinary(obj)`](#serializeFullBitcoinBinary)
- * [`async blockToCar(multiformats, carWriter, obj)`](#blockToCar)
- * [`cidToHash(multiformats, cid)`](#cidToHash)
- * [`async assemble(multiformats, loader, blockCID)`](#assemble)
- * [`blockHashToCID(multiformats)`](#blockHashToCID)
- * [`txHashToCID(multiformats)`](#txHashToCID)
+ * [`Bitcoin.deserializeFullBitcoinBytes()(bytes)`](#Bitcoin__deserializeFullBitcoinBytes____)
+ * [`Bitcoin.serializeFullBitcoinBytes()(obj)`](#Bitcoin__serializeFullBitcoinBytes____)
+ * [`Bitcoin.cidToHash()(cid)`](#Bitcoin__cidToHash____)
+ * [`Bitcoin.encodeAll()`](#Bitcoin__encodeAll____)
+ * [`Bitcoin.assemble()`](#Bitcoin__assemble____)
+ * [`BitcoinBlock.encode()`](#BitcoinBlock__encode____)
+ * [`BitcoinBlock.decode()`](#BitcoinBlock__decode____)
+ * [`BitcoinBlock.name`](#BitcoinBlock__name)
+ * [`BitcoinBlock.code`](#BitcoinBlock__code)
+ * [`BitcoinBlock.blockHashToCID()`](#BitcoinBlock__blockHashToCID____)
+ * [`BitcoinTransaction.encode()`](#BitcoinTransaction__encode____)
+ * [`BitcoinTransaction.encodeNoWitness()`](#BitcoinTransaction__encodeNoWitness____)
+ * [`BitcoinTransaction.encodeAll()`](#BitcoinTransaction__encodeAll____)
+ * [`BitcoinTransaction.encodeAllNoWitness()`](#BitcoinTransaction__encodeAllNoWitness____)
+ * [`BitcoinTransaction.decode()`](#BitcoinTransaction__decode____)
+ * [`BitcoinTransaction.name`](#BitcoinTransaction__name)
+ * [`BitcoinTransaction.name`](#BitcoinTransaction__name)
+ * [`BitcoinTransaction.txHashToCID()`](#BitcoinTransaction__txHashToCID____)
+ * [`BitcoinWitnessCommitment.encode()`](#BitcoinWitnessCommitment__encode____)
+ * [`BitcoinWitnessCommitment.decode()`](#BitcoinWitnessCommitment__decode____)
+ * [`BitcoinWitnessCommitment.name`](#BitcoinWitnessCommitment__name)
+ * [`BitcoinWitnessCommitment.code`](#BitcoinWitnessCommitment__code)
+ * [`DblSha2256.name`](#DblSha2256__name)
+ * [`DblSha2256.code`](#DblSha2256__code)
+ * [`DblSha2256.encode()`](#DblSha2256__encode____)
+ * [`DblSha2256.digest()`](#DblSha2256__digest____)
 
-<a name="deserializeFullBitcoinBinary"></a>
-### `deserializeFullBitcoinBinary(binary)`
+<a name="Bitcoin__deserializeFullBitcoinBytes____"></a>
+### `Bitcoin.deserializeFullBitcoinBytes()(bytes)`
+
+* `bytes` `(Uint8Array)`: a binary form of a Bitcoin block graph
+
+* Returns:  `BlockPorcelain`: an object representation of the full Bitcoin block graph
 
 Instantiate a full object form from a full Bitcoin block graph binary representation. This binary form is typically extracted from a Bitcoin network node, such as with the Bitcoin Core `bitcoin-cli` `getblock <identifier> 0` command (which outputs hexadecimal form and therefore needs to be decoded prior to handing to this function). This full binary form can also be obtained from the utility [`assemble`](#assemble) function which can construct the full graph form of a Bitcoin block from the full IPLD block graph.
 
 The object returned, if passed through `JSON.stringify()` should be identical to the JSON form provided by the Bitcoin Core `bitcoin-cli` `getblock <identifier> 2` command (minus some chain-context elements that are not possible to derive without the full blockchain).
 
-**Parameters:**
+<a name="Bitcoin__serializeFullBitcoinBytes____"></a>
+### `Bitcoin.serializeFullBitcoinBytes()(obj)`
 
-* **`binary`** _(`Uint8Array|Buffer`)_: a binary form of a Bitcoin block graph
+* `obj` `(BlockPorcelain)`: a full JavaScript object form of a Bitcoin block graph
 
-**Return value**  _(`object`)_: an object representation of the full Bitcoin block graph
+* Returns:  `Uint8Array`: a binary form of the Bitcoin block graph
 
-<a name="serializeFullBitcoinBinary"></a>
-### `serializeFullBitcoinBinary(obj)`
+Encode a full object form of a Bitcoin block graph into its binary
+equivalent. This is the inverse of
+[`Bitcoin.deserializeFullBitcoinBytes()`](#Bitcoin__deserializeFullBitcoinBytes____) and should produce the exact
+binary representation of a Bitcoin block graph given the complete input.
 
-Encode a full object form of a Bitcoin block graph into its binary equivalent. This is the inverse of [`deserializeFullBitcoinBinary`](#deserializeFullBitcoinBinary) and should produce the exact binary representation of a Bitcoin block graph given the complete input.
+The object form must include both the header and full transaction (including
+witness data) data for it to be properly serialized.
 
-The object form must include both the header and full transaction (including witness data) data for it to be properly serialized.
+As of writing, the witness merkle nonce is not currently present in the JSON
+output from Bitcoin Core's `bitcoin-cli`. See
+https://github.com/bitcoin/bitcoin/pull/18826 for more information. Without
+this nonce, the exact binary form cannot be fully generated.
 
-As of writing, the witness merkle nonce is not currently present in the JSON output from Bitcoin Core's `bitcoin-cli`. See https://github.com/bitcoin/bitcoin/pull/18826 for more information. Without this nonce, the exact binary form cannot be fully generated.
+<a name="Bitcoin__cidToHash____"></a>
+### `Bitcoin.cidToHash()(cid)`
 
-**Parameters:**
+* `cid` `(CID|string)`: a CID
 
-* **`obj`** _(`object`)_: a full JavaScript object form of a Bitcoin block graph
+* Returns:  `string`: a hexadecimal big-endian representation of the identifier.
 
-**Return value**  _(`Buffer`)_: a binary form of the Bitcoin block graph
-
-<a name="blockToCar"></a>
-### `async blockToCar(multiformats, carWriter, obj)`
-
-Extract all IPLD blocks from a full Bitcoin block graph and write them to a CAR archive.
-
-This operation requires a full deserialized Bitcoin block graph, where the transactions in their full form (with witness data intact post-segwit), as typically presented in JSON form with the Bitcoin Core `bitcoin-cli` command `getblock <identifier> 2` or using one of the utilities here to instantiate a full object form.
-
-The CAR archive should be created using [datastore-car](https://github.com/ipld/js-datastore-car) and should be capable of write operations.
-
-**Parameters:**
-
-* **`multiformats`** _(`object`)_: a multiformats object with `dbl-sha2-256` multihash, `bitcoin-block`, `bitcoin-tx` and `bitcoin-witness-commitment` multicodecs as well as the `dag-cbor` multicodec which is required for writing the CAR header.
-* **`carWriter`** _(`object`)_: an initialized and writable `CarDatastore` instance.
-* **`obj`** _(`object`)_: a full Bitcoin block graph.
-
-**Return value**  _(`object`)_: a CID for the root block (the header `bitcoin-block`).
-
-<a name="cidToHash"></a>
-### `cidToHash(multiformats, cid)`
-
-Convert a CID to a Bitcoin block or transaction identifier. This process is the reverse of [`blockHashToCID`](#blockHashToCID) and [`txHashToCID`](#txHashToCID) and involves extracting and decoding the multihash from the CID, reversing the bytes and presenting it as a big-endian hexadecimal string.
+Convert a CID to a Bitcoin block or transaction identifier. This process is
+the reverse of `blockHashToCID()` and `txHashToCID()` and involves extracting
+and decoding the multihash from the CID, reversing the bytes and presenting
+it as a big-endian hexadecimal string.
 
 Works for both block identifiers and transaction identifiers.
 
-**Parameters:**
+<a name="Bitcoin__encodeAll____"></a>
+### `Bitcoin.encodeAll()`
 
-* **`multiformats`** _(`object`)_: a multiformats object
-* **`cid`** _(`object`)_: a CID (`multiformats.CID`)
+* `block` `(BlockPorcelain)`
 
-**Return value**  _(`string`)_: a hexadecimal big-endian representation of the identifier.
+* Returns:  `IterableIterator<{cid: CID, bytes: Uint8Array}>`
 
-<a name="assemble"></a>
-### `async assemble(multiformats, loader, blockCID)`
+Encodes a full Bitcoin block, as presented in `BlockPorcelain` form (which is
+available as JSON output from the `bitcoin-cli` tool—see the `bitcoin-block`
+npm package for more information) into its constituent IPLD blocks. This
+includes the header, the transaction merkle intermediate nodes, the
+transactions and SegWit forms of the transaction merkle and nodes if present
+along with the witness commitment block if required.
 
-Given a CID for a `bitcoin-block` Bitcoin block header and an IPLD block loader that can retrieve Bitcoin IPLD blocks by CID, re-assemble a full Bitcoin block graph into both object and binary forms.
+<a name="Bitcoin__assemble____"></a>
+### `Bitcoin.assemble()`
 
-The loader should be able to return the binary form for `bitcoin-block`, `bitcoin-tx` and `bitcoin-witness-commitment` CIDs.
+* `loader` `(IPLDLoader)`: an IPLD block loader function that takes a CID argument and returns a `Uint8Array` containing the binary block data for that CID
+* `blockCid` `(CID)`: a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
 
-**Parameters:**
+* Returns:  `Promise<{deserialized:BlockPorcelain, bytes:Uint8Array}>`: an object containing two properties, `deserialized` and `bytes` where `deserialized` contains a full JavaScript instantiation of the Bitcoin block graph and `bytes` contains a `Uint8Array` with the binary representation of the graph.
 
-* **`multiformats`** _(`object`)_: a multiformats object with the Bitcoin multicodec and multihash installed
-* **`loader`** _(`function`)_: an IPLD block loader function that takes a CID argument and returns a `Buffer` or `Uint8Array` containing the binary block data for that CID
-* **`blockCID`** _(`CID`)_: a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
+Given a CID for a `bitcoin-block` Bitcoin block header and an IPLD block
+loader that can retrieve Bitcoin IPLD blocks by CID, re-assemble a full
+Bitcoin block graph into both object and binary forms. This is the inverse
+of the [`Bitcoin.encodeAll()`](#Bitcoin__encodeAll____) function in that it puts the
+`BitcoinPorcelain` back together. A JSON form of this output should match
+the output provided by `bitcoin-cli` (with some possible minor differences).
 
-**Return value**  _(`object`)_: an object containing two properties, `deserialized` and `binary` where `deserialized` contains a full JavaScript instantiation of the Bitcoin block graph and `binary` contains a `Buffer` with the binary representation of the graph.
+The loader should be able to return the binary form for `bitcoin-block`,
+`bitcoin-tx` and `bitcoin-witness-commitment` CIDs.
 
-<a name="blockHashToCID"></a>
-### `blockHashToCID(multiformats)`
+<a name="BitcoinBlock__encode____"></a>
+### `BitcoinBlock.encode()`
+
+* `node` `(BitcoinHeader)`
+
+* Returns:  `ByteView<BitcoinHeader>`
+
+**`bitcoin-block` / `0xb0` codec**: Encodes an IPLD node representing a
+Bitcoin header object into byte form.
+
+<a name="BitcoinBlock__decode____"></a>
+### `BitcoinBlock.decode()`
+
+* `data` `(ByteView<BitcoinHeader>)`
+
+* Returns:  `BitcoinHeader`
+
+**`bitcoin-block` / `0xb0` codec**: Decodes a bytes form of a Bitcoin header
+into an IPLD node representation.
+
+<a name="BitcoinBlock__name"></a>
+### `BitcoinBlock.name`
+
+**`bitcoin-block` / `0xb0` codec**: the codec name
+
+<a name="BitcoinBlock__code"></a>
+### `BitcoinBlock.code`
+
+**`bitcoin-block` / `0xb0` codec**: the codec code
+
+<a name="BitcoinBlock__blockHashToCID____"></a>
+### `BitcoinBlock.blockHashToCID()`
+
+* `blockHash` `(string)`: a string form of a block hash
+
+* Returns:  `CID`: a CID object representing this block identifier.
 
 Convert a Bitcoin block identifier (hash) to a CID. The identifier should be in big-endian form, i.e. with leading zeros.
 
 The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-block` multicodec. This process is reversable, see [`cidToHash`](#cidToHash).
 
-**Parameters:**
+<a name="BitcoinTransaction__encode____"></a>
+### `BitcoinTransaction.encode()`
 
-* **`multiformats`** _(`object`)_: a multiformats object with `dbl-sha2-256` multihash and `bitcoin-block` multicodec registered
+* `node` `(BitcoinTransaction|BitcoinTransactionMerkleNode)`
 
-**Return value**  _(`object`)_: a CID (`multiformats.CID`) object representing this block identifier.
+* Returns:  `ByteView<(BitcoinTransaction|BitcoinTransactionMerkleNode)>`
 
-<a name="txHashToCID"></a>
-### `txHashToCID(multiformats)`
+**`bitcoin-tx` / `0xb1` codec**: Encodes an IPLD node representing a
+Bitcoin transaction object into byte form.
+
+Note that a `bitcoin-tx` IPLD node can either be a full transaction with or
+without SegWit data, or an intermediate transaction Merkle tree node; in
+which case it is simply an array of two CIDs.
+
+<a name="BitcoinTransaction__encodeNoWitness____"></a>
+### `BitcoinTransaction.encodeNoWitness()`
+
+* `node` `(BitcoinTransaction)`
+
+* Returns:  `ByteView<BitcoinTransaction>`
+
+Same as [`BitcoinTransaction.encode()`](#BitcoinTransaction__encode____) but will explictly exclude any
+witness (SegWit) data from the output. This is necessary for encoding SegWit
+blocks since transactions must be stored both with and without witness data
+to correctly represent the full content addressed structure.
+
+<a name="BitcoinTransaction__encodeAll____"></a>
+### `BitcoinTransaction.encodeAll()`
+
+* `obj` `(BlockPorcelain)`
+
+* Returns: 
+
+Encodes all transactions in a complete `BlockPorcelain` (see the
+`bitcoin-block` npm package for details on this type) representation of an
+entire Bitcoin transaction; including intermediate Merkle tree nodes.
+
+Intermediate Merkle tree nodes won't have the `transaction` property on the
+output as they aren't full transactions and their `bytes` will have a length
+of 64.
+
+<a name="BitcoinTransaction__encodeAllNoWitness____"></a>
+### `BitcoinTransaction.encodeAllNoWitness()`
+
+* `obj` `(BlockPorcelain)`
+
+* Returns: 
+
+Same as [`BitcoinTransaction.encodeAll()`](#BitcoinTransaction__encodeAll____) but only encodes non-SegWit
+transaction data, that is, transactions without witness data and no secondary
+SegWit transactions Merkle tree.
+
+<a name="BitcoinTransaction__decode____"></a>
+### `BitcoinTransaction.decode()`
+
+* `data` `(ByteView<(BitcoinTransaction|BitcoinTransactionMerkleNode)>)`
+
+* Returns:  `BitcoinTransaction|BitcoinTransactionMerkleNode`
+
+**`bitcoin-block` / `0xb0` codec**: Decodes a bytes form of a Bitcoin
+transaction into an IPLD node representation.
+
+Note that a `bitcoin-tx` IPLD node can either be a full transaction with or
+without SegWit data, or an intermediate transaction Merkle tree node; in
+which case it is simply an array of two CIDs. As byte form, an intermediate
+Merkle tree node is a fixed 64-bytes.
+
+<a name="BitcoinTransaction__name"></a>
+### `BitcoinTransaction.name`
+
+**`bitcoin-tx` / `0xb1` codec**: the codec name
+
+<a name="BitcoinTransaction__name"></a>
+### `BitcoinTransaction.name`
+
+**`bitcoin-tx` / `0xb1` codec**: the codec name
+
+<a name="BitcoinTransaction__txHashToCID____"></a>
+### `BitcoinTransaction.txHashToCID()`
+
+* `txHash` `(string)`: a string form of a transaction hash
+
+* Returns:  `CID`: A CID (`multiformats.CID`) object representing this transaction identifier.
 
 Convert a Bitcoin transaction identifier (hash) to a CID. The identifier should be in big-endian form as typically understood by Bitcoin applications.
 
 The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-tx` multicodec. This process is reversable, see [`cidToHash`](#cidToHash).
 
-**Parameters:**
+<a name="BitcoinWitnessCommitment__encode____"></a>
+### `BitcoinWitnessCommitment.encode()`
 
-* **`multiformats`** _(`object`)_: a multiformats object with `dbl-sha2-256` multihash and `bitcoin-tx` multicodec registered
+* `node` `(BitcoinWitnessCommitment)`
 
-**Return value**  _(`object`)_: A CID (`multiformats.CID`) object representing this transaction identifier.
+* Returns:  `ByteView<BitcoinWitnessCommitment>`
+
+**`bitcoin-witness-commitment` / `0xb2` codec**: Encodes an IPLD node
+representing a Bitcoin witness commitment object into byte form.
+
+The object is expected to be in the form
+`{witnessMerkleRoot:CID, nonce:Uint8Array}` where the `witnessMerkleRoot`
+may be null.
+
+<a name="BitcoinWitnessCommitment__decode____"></a>
+### `BitcoinWitnessCommitment.decode()`
+
+* `data` `(ByteView<BitcoinWitnessCommitment>)`
+
+* Returns:  `BitcoinWitnessCommitment`
+
+**`bitcoin-witness-commitment` / `0xb2` codec**: Decodes a bytes form of a
+Bitcoin witness commitment into an IPLD node representation.
+.
+
+The returned object will be in the form
+`{witnessMerkleRoot:CID, nonce:Uint8Array}` where the `witnessMerkleRoot`
+may be null.
+
+<a name="BitcoinWitnessCommitment__name"></a>
+### `BitcoinWitnessCommitment.name`
+
+**`bitcoin-witness-commitment` / `0xb2` codec**: the codec name
+
+<a name="BitcoinWitnessCommitment__code"></a>
+### `BitcoinWitnessCommitment.code`
+
+**`bitcoin-witness-commitment` / `0xb2` codec**: the codec code
+
+<a name="DblSha2256__name"></a>
+### `DblSha2256.name`
+
+**`dbl-sha2-256` / `0x56` multihash**: the multihash name
+
+<a name="DblSha2256__code"></a>
+### `DblSha2256.code`
+
+**`dbl-sha2-256` / `0x56` multihash**: the multihash code
+
+<a name="DblSha2256__encode____"></a>
+### `DblSha2256.encode()`
+
+* `bytes` `(Uint8Array)`: a Uint8Array
+
+* Returns:  `Uint8Array`: a 32-byte digest
+
+**`dbl-sha2-256` / `0x56` multihash**: Encode bytes using the multihash
+algorithm, creating raw 32-byte digest _without_ multihash prefix.
+
+<a name="DblSha2256__digest____"></a>
+### `DblSha2256.digest()`
+
+* `input` `(Uint8Array)`
+
+* Returns: 
+
+**`dbl-sha2-256` / `0x56` multihash**: Encode bytes using the multihash
+algorithm, creating multihash `Digest` (i.e. with multihash prefix).
 
 ## License
 

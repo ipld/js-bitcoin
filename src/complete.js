@@ -10,12 +10,14 @@ const { toHex } = bytes
 
 /** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
 /** @typedef {import('bitcoin-block/interface').TransactionPorcelain} TransactionPorcelain */
+/** @typedef {import('./interface').IPLDLoader} IPLDLoader */
 /** @typedef {import('./interface').BitcoinTransaction} BitcoinTransaction */
 /** @typedef {import('./interface').BitcoinTransactionMerkleNode} BitcoinTransactionMerkleNode */
 
 /**
  * @param {any} obj
  * @returns {{cid:CID, bytes:Uint8Array}}
+ * @ignore
  */
 function mkblock (obj) {
   const bytes = bitcoinBlockCodec.encode(obj)
@@ -27,8 +29,16 @@ function mkblock (obj) {
 }
 
 /**
+ * Encodes a full Bitcoin block, as presented in `BlockPorcelain` form (which is
+ * available as JSON output from the `bitcoin-cli` tool—see the `bitcoin-block`
+ * npm package for more information) into its constituent IPLD blocks. This
+ * includes the header, the transaction merkle intermediate nodes, the
+ * transactions and SegWit forms of the transaction merkle and nodes if present
+ * along with the witness commitment block if required.
+ *
+ * @name Bitcoin.encodeAll()
  * @param {BlockPorcelain} block
- * @returns
+ * @returns {IterableIterator<{cid: CID, bytes: Uint8Array}>}
  */
 export function * encodeAll (block) {
   if (typeof block !== 'object' || !Array.isArray(block.tx)) {
@@ -69,7 +79,12 @@ export function * encodeAll (block) {
     }
   }
 
-  const segWit = BitcoinBlockTransaction.isPorcelainSegWit(/** @type {TransactionPorcelain} */ (block.tx[0]))
+  const segWit = BitcoinBlockTransaction.isPorcelainSegWit(
+    /**
+      *@type {TransactionPorcelain}
+      * @ignore
+      */
+    (block.tx[0]))
   if (!segWit) {
     // console.log(counts)
     return
@@ -100,27 +115,40 @@ export function * encodeAll (block) {
     }
   }
 
-  yield bitcoinWitnessCommitmentCodec.encodeWitnessCommitment(block, lastCid)
+  const witcom = bitcoinWitnessCommitmentCodec.encodeWitnessCommitment(block, lastCid)
+  if (witcom) {
+    yield witcom
+  }
   // counts.blocks++
   // console.log(counts)
 }
 
 /**
- * Given a CID for a `bitcoin-block` Bitcoin block header and an IPLD block loader that can retrieve Bitcoin IPLD blocks by CID, re-assemble a full Bitcoin block graph into both object and binary forms.
+ * Given a CID for a `bitcoin-block` Bitcoin block header and an IPLD block
+ * loader that can retrieve Bitcoin IPLD blocks by CID, re-assemble a full
+ * Bitcoin block graph into both object and binary forms. This is the inverse
+ * of the {@link Bitcoin.encodeAll()} function in that it puts the
+ * `BitcoinPorcelain` back together. A JSON form of this output should match
+ * the output provided by `bitcoin-cli` (with some possible minor differences).
  *
- * The loader should be able to return the binary form for `bitcoin-block`, `bitcoin-tx` and `bitcoin-witness-commitment` CIDs.
+ * The loader should be able to return the binary form for `bitcoin-block`,
+ * `bitcoin-tx` and `bitcoin-witness-commitment` CIDs.
  *
- * @param {(cid:CID)=>Promise<Uint8Array>} loader an IPLD block loader function that takes a CID argument and returns a `Buffer` or `Uint8Array` containing the binary block data for that CID
+ * @param {IPLDLoader} loader an IPLD block loader function that takes a CID argument and returns a `Uint8Array` containing the binary block data for that CID
  * @param {CID} blockCid a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
  * @returns {Promise<{deserialized:BlockPorcelain, bytes:Uint8Array}>} an object containing two properties, `deserialized` and `bytes` where `deserialized` contains a full JavaScript instantiation of the Bitcoin block graph and `bytes` contains a `Uint8Array` with the binary representation of the graph.
- * @function
+ * @name Bitcoin.assemble()
  */
 export async function assemble (loader, blockCid) {
-  /** @type {Record<string, BitcoinTransaction|BitcoinTransactionMerkleNode>} */
+  /**
+   * @type {Record<string, BitcoinTransaction|BitcoinTransactionMerkleNode>}
+   * @ignore
+   */
   const merkleCache = {}
   /**
    * @param {CID} txCid
    * @returns {Promise<BitcoinTransaction|BitcoinTransactionMerkleNode>}
+   * @ignore
    */
   async function loadTx (txCid) {
     const txCidStr = txCid.toString()
@@ -152,6 +180,7 @@ export async function assemble (loader, blockCid) {
   /**
    * @param {CID} txCid
    * @returns {AsyncIterableIterator<BitcoinTransaction|BitcoinTransactionMerkleNode>}
+   * @ignore
    */
   async function * transactions (txCid) {
     const node = await loadTx(txCid)

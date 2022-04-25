@@ -13,8 +13,12 @@ import { CODEC_BLOCK, CODEC_BLOCK_CODE, CODEC_TX_CODE } from './constants.js'
  */
 
 /**
+ * **`bitcoin-block` / `0xb0` codec**: Encodes an IPLD node representing a
+ * Bitcoin header object into byte form.
+ *
  * @param {BitcoinHeader} node
  * @returns {ByteView<BitcoinHeader>}
+ * @name BitcoinBlock.encode()
  */
 export function encode (node) {
   if (typeof node !== 'object') {
@@ -25,8 +29,12 @@ export function encode (node) {
 }
 
 /**
+ * **`bitcoin-block` / `0xb0` codec**: Decodes a bytes form of a Bitcoin header
+ * into an IPLD node representation.
+ *
  * @param {ByteView<BitcoinHeader>} data
  * @returns {BitcoinHeader}
+ * @name BitcoinBlock.decode()
  */
 export function decode (data) {
   if (!(data instanceof Uint8Array)) {
@@ -49,7 +57,15 @@ export function decode (data) {
   return deserialized
 }
 
+/**
+ * **`bitcoin-block` / `0xb0` codec**: the codec name
+ * @name BitcoinBlock.name
+ */
 export const name = CODEC_BLOCK
+/**
+ * **`bitcoin-block` / `0xb0` codec**: the codec code
+ * @name BitcoinBlock.code
+ */
 export const code = CODEC_BLOCK_CODE
 
 /**
@@ -59,6 +75,7 @@ export const code = CODEC_BLOCK_CODE
  *
  * @param {string} blockHash a string form of a block hash
  * @returns {CID} a CID object representing this block identifier.
+ * @name BitcoinBlock.blockHashToCID()
  */
 export function blockHashToCID (blockHash) {
   if (typeof blockHash !== 'string') {

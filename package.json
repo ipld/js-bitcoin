@@ -8,7 +8,7 @@
   "scripts": {
     "test": "npm run build && mocha test/test-*.js",
     "pretest": "standard",
-    "docs": "jsdoc4readme --readme src/bitcoin.js src/complete.js src/bitcoin-block.js src/bitcoin-tx.js",
+    "docs": "jsdoc4readme --readme src/bitcoin.js src/util.js src/complete.js src/bitcoin-block.js src/bitcoin-tx.js src/bitcoin-witness-commitment.js src/dbl-sha2-256.js",
     "build:types": "tsc --build",
     "build": "npm run build:types"
   },
