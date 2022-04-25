@@ -1,6 +1,18 @@
+/**
+ * **`dbl-sha2-256` / `0x56` multihash**: the multihash name
+ * @name DblSha2256.name
+ */
 export const name: "dbl-sha2-256";
+/**
+ * **`dbl-sha2-256` / `0x56` multihash**: the multihash code
+ * @name DblSha2256.code
+ */
 export const code: 86;
 /**
+ * **`dbl-sha2-256` / `0x56` multihash**: Encode bytes using the multihash
+ * algorithm, creating raw 32-byte digest _without_ multihash prefix.
+ *
+ * @name DblSha2256.encode()
  * @param {Uint8Array} bytes a Uint8Array
  * @returns {Uint8Array} a 32-byte digest
  */

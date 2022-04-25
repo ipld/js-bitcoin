@@ -10,6 +10,7 @@ import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT, CODEC_WITNESS_COMMIT
 /** @typedef {import('bitcoin-block/classes/Block').BlockPorcelain} BlockPorcelain */
 /** @typedef {import('./interface').BitcoinWitnessCommitment} BitcoinWitnessCommitment */
 
+/** @ignore */
 const NULL_HASH = new Uint8Array(32)
 
 /*
@@ -24,6 +25,7 @@ const NULL_HASH = new Uint8Array(32)
  * @param {import('bitcoin-block/classes/Block').BlockPorcelain} deserialized
  * @param {CID|null} witnessMerkleRoot
  * @returns {{cid:CID, bytes:Uint8Array}|null}
+ * @ignore
  */
 export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
   if (typeof deserialized !== 'object' || !Array.isArray(deserialized.tx)) {
@@ -91,6 +93,15 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
 }
 
 /**
+ * **`bitcoin-witness-commitment` / `0xb2` codec**: Encodes an IPLD node
+ * representing a Bitcoin witness commitment object into byte form.
+ *
+ * The object is expected to be in the form
+ * `{witnessMerkleRoot:CID, nonce:Uint8Array}` where the `witnessMerkleRoot`
+ * may be null.
+ *
+ *
+ * @name BitcoinWitnessCommitment.encode()
  * @param {BitcoinWitnessCommitment} node
  * @returns {ByteView<BitcoinWitnessCommitment>}
  */
@@ -118,6 +129,15 @@ export function encode (node) {
 }
 
 /**
+ * **`bitcoin-witness-commitment` / `0xb2` codec**: Decodes a bytes form of a
+ * Bitcoin witness commitment into an IPLD node representation.
+ *.
+ *
+ * The returned object will be in the form
+ * `{witnessMerkleRoot:CID, nonce:Uint8Array}` where the `witnessMerkleRoot`
+ * may be null.
+ *
+ * @name BitcoinWitnessCommitment.decode()
  * @param {ByteView<BitcoinWitnessCommitment>} data
  * @returns {BitcoinWitnessCommitment}
  */
@@ -139,12 +159,21 @@ export function decode (data) {
   return { witnessMerkleRoot, nonce }
 }
 
+/**
+ * **`bitcoin-witness-commitment` / `0xb2` codec**: the codec name
+ * @name BitcoinWitnessCommitment.name
+ */
 export const name = CODEC_WITNESS_COMMITMENT
+/**
+ * **`bitcoin-witness-commitment` / `0xb2` codec**: the codec code
+ * @name BitcoinWitnessCommitment.code
+ */
 export const code = CODEC_WITNESS_COMMITMENT_CODE
 
 /**
  * @param {Uint8Array} bytes
  * @returns {boolean}
+ * @ignore
  */
 function isNullHash (bytes) {
   return isSameBytes(bytes, NULL_HASH)
@@ -154,6 +183,7 @@ function isNullHash (bytes) {
  * @param {Uint8Array} bytes1
  * @param {Uint8Array} bytes2
  * @returns {boolean}
+ * @ignore
  */
 function isSameBytes (bytes1, bytes2) {
   if (bytes1.length !== bytes2.length) {
