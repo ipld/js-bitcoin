@@ -4,28 +4,41 @@
  *
  * The object returned, if passed through `JSON.stringify()` should be identical to the JSON form provided by the Bitcoin Core `bitcoin-cli` `getblock <identifier> 2` command (minus some chain-context elements that are not possible to derive without the full blockchain).
  *
+ * @name Bitcoin.deserializeFullBitcoinBytes()
  * @param {Uint8Array} bytes a binary form of a Bitcoin block graph
  * @returns {BlockPorcelain} an object representation of the full Bitcoin block graph
  * @function
  */
 export function deserializeFullBitcoinBytes(bytes: Uint8Array): BlockPorcelain;
 /**
- * Encode a full object form of a Bitcoin block graph into its binary equivalent. This is the inverse of {@link deserializeFullBitcoinBytes} and should produce the exact binary representation of a Bitcoin block graph given the complete input.
+ * Encode a full object form of a Bitcoin block graph into its binary
+ * equivalent. This is the inverse of
+ * {@link Bitcoin.deserializeFullBitcoinBytes()} and should produce the exact
+ * binary representation of a Bitcoin block graph given the complete input.
  *
- * The object form must include both the header and full transaction (including witness data) data for it to be properly serialized.
+ * The object form must include both the header and full transaction (including
+ * witness data) data for it to be properly serialized.
  *
- * As of writing, the witness merkle nonce is not currently present in the JSON output from Bitcoin Core's `bitcoin-cli`. See https://github.com/bitcoin/bitcoin/pull/18826 for more information. Without this nonce, the exact binary form cannot be fully generated.
+ * As of writing, the witness merkle nonce is not currently present in the JSON
+ * output from Bitcoin Core's `bitcoin-cli`. See
+ * https://github.com/bitcoin/bitcoin/pull/18826 for more information. Without
+ * this nonce, the exact binary form cannot be fully generated.
  *
+ * @name Bitcoin.serializeFullBitcoinBytes()
  * @param {BlockPorcelain} obj a full JavaScript object form of a Bitcoin block graph
  * @returns {Uint8Array} a binary form of the Bitcoin block graph
  * @function
  */
 export function serializeFullBitcoinBytes(obj: BlockPorcelain): Uint8Array;
 /**
- * Convert a CID to a Bitcoin block or transaction identifier. This process is the reverse of {@link blockHashToCID} and {@link txHashToCID} and involves extracting and decoding the multihash from the CID, reversing the bytes and presenting it as a big-endian hexadecimal string.
+ * Convert a CID to a Bitcoin block or transaction identifier. This process is
+ * the reverse of `blockHashToCID()` and `txHashToCID()` and involves extracting
+ * and decoding the multihash from the CID, reversing the bytes and presenting
+ * it as a big-endian hexadecimal string.
  *
  * Works for both block identifiers and transaction identifiers.
  *
+ * @name Bitcoin.cidToHash()
  * @param {CID|string} cid a CID
  * @returns {string} a hexadecimal big-endian representation of the identifier.
  * @function

@@ -46,7 +46,7 @@
   },
   "homepage": "https://github.com/ipld/js-bitcoin#readme",
   "dependencies": {
-    "bitcoin-block": "^2.0.0",
+    "bitcoin-block": "^2.0.1",
     "multiformats": "^9.6.4"
   },
   "devDependencies": {

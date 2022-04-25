@@ -2,8 +2,11 @@
 
 import { assert } from 'chai'
 import { bytes, CID } from 'multiformats'
+import os from 'os'
 import fs from 'fs'
-import { Readable } from 'stream'
+import path from 'path'
+import { Readable, pipeline } from 'stream'
+import { promisify } from 'util'
 import { CarIndexer, CarReader, CarWriter } from '@ipld/car'
 import * as fixtures from './fixtures.js'
 import { setupBlocks, roundDifficulty, cleanBlock } from './util.js'
@@ -14,7 +17,8 @@ const { toHex } = bytes
 describe('formats', () => {
   let blocks
 
-  before(async () => {
+  before(async function () {
+    this.timeout(10000)
     blocks = await setupBlocks()
   })
 
@@ -76,7 +80,9 @@ describe('formats', () => {
     }
   })
 
-  describe('convertBitcoinPorcelain', () => {
+  describe('convertBitcoinPorcelain', function () {
+    this.timeout(10000)
+
     for (const name of fixtures.names) {
       it(name, async () => {
         const { data, raw: expected } = await fixtures.loadFixture(name)
@@ -89,6 +95,11 @@ describe('formats', () => {
 
   describe('full block car file round-trip', function () {
     this.timeout(10000)
+    let tmpDir
+
+    before(async () => {
+      tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'js-bitcoin-test_'))
+    })
 
     for (const name of fixtures.names) {
       it(name, async () => {
@@ -96,6 +107,9 @@ describe('formats', () => {
 
         expected = roundDifficulty(cleanBlock(expected))
         const blockCid = CID.parse(meta.cid)
+        const carFile = path.join(tmpDir, `${name}.car`)
+        const outStream = fs.createWriteStream(carFile)
+        let pipelinePromise
         let writer
         let rootCid
         for await (const { cid, bytes } of bitcoin.encodeAll(expected)) {
@@ -103,11 +117,12 @@ describe('formats', () => {
             rootCid = cid
             const writable = CarWriter.create([cid])
             writer = writable.writer
-            Readable.from(writable.out).pipe(fs.createWriteStream(`${name}.car`))
+            pipelinePromise = promisify(pipeline)(Readable.from(writable.out), outStream)
           }
-          await writer.put({ cid, bytes })
+          writer.put({ cid, bytes })
         }
-        await writer.close()
+        writer.close()
+        await pipelinePromise
         assert.deepStrictEqual(rootCid.toString(), blockCid.toString())
 
         // read
@@ -115,7 +130,7 @@ describe('formats', () => {
         // build an index from the car
         const index = {}
         let blockCount = 0
-        const inStream = fs.createReadStream(`${name}.car`)
+        const inStream = fs.createReadStream(carFile)
         const indexer = await CarIndexer.fromIterable(inStream)
         assert.strictEqual((await indexer.getRoots()).length, 1)
         assert.deepStrictEqual((await indexer.getRoots())[0].toString(), blockCid.toString())
@@ -125,7 +140,7 @@ describe('formats', () => {
         }
 
         // make a loder that can read blocks from the car
-        const fd = await fs.promises.open(`${name}.car`)
+        const fd = await fs.promises.open(carFile)
         let reads = 0
         let failedReads = 0
         async function loader (cid) {
@@ -168,15 +183,7 @@ describe('formats', () => {
     }
 
     after(async () => {
-      for (const name of fixtures.names) {
-        try {
-          await fs.promises.unlink(`${name}.car`)
-        } catch (err) {
-          if (err.code !== 'ENOENT') {
-            throw err
-          }
-        }
-      }
+      await fs.promises.rmdir(tmpDir, { recursive: true })
     })
   })
 })
