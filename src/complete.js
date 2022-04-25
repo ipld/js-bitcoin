@@ -1,23 +1,44 @@
 import { CID, bytes } from 'multiformats'
-import { BitcoinBlock, BitcoinTransaction } from 'bitcoin-block'
+import { BitcoinBlock, BitcoinTransaction as BitcoinBlockTransaction } from 'bitcoin-block'
 import * as bitcoinBlockCodec from './bitcoin-block.js'
 import * as bitcoinTxCodec from './bitcoin-tx.js'
 import * as bitcoinWitnessCommitmentCodec from './bitcoin-witness-commitment.js'
 import * as dblSha256 from './dbl-sha2-256.js'
-import { HASH_ALG, SEGWIT_BLOCKTIME } from './constants.js'
+import { SEGWIT_BLOCKTIME } from './constants.js'
 
 const { toHex } = bytes
 
-async function mkblock (obj, codec) {
-  const bytes = await codec.encode(obj)
-  const mh = await dblSha256.digest(bytes, HASH_ALG)
+/** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
+/** @typedef {import('bitcoin-block/interface').TransactionPorcelain} TransactionPorcelain */
+/** @typedef {import('./interface').BitcoinTransaction} BitcoinTransaction */
+/** @typedef {import('./interface').BitcoinTransactionMerkleNode} BitcoinTransactionMerkleNode */
+
+/**
+ * @param {any} obj
+ * @returns {{cid:CID, bytes:Uint8Array}}
+ */
+function mkblock (obj) {
+  const bytes = bitcoinBlockCodec.encode(obj)
+  const mh = dblSha256.digest(bytes)
   return {
-    cid: CID.create(1, codec.code, mh),
+    cid: CID.create(1, bitcoinBlockCodec.code, mh),
     bytes
   }
 }
 
-export async function * encodeAll (block) {
+/**
+ * @param {BlockPorcelain} block
+ * @returns
+ */
+export function * encodeAll (block) {
+  if (typeof block !== 'object' || !Array.isArray(block.tx)) {
+    throw new TypeError('Can only encode a complete bitcoin block (header and complete transactions)')
+  }
+  for (const tx of block.tx) {
+    if (typeof tx !== 'object') {
+      throw new TypeError('Can only encode a complete bitcoin block (header and complete transactions)')
+    }
+  }
   const cidSet = new Set()
   const counts = {
     blocks: 1, // header
@@ -29,11 +50,11 @@ export async function * encodeAll (block) {
   }
 
   // header
-  yield await mkblock(block, bitcoinBlockCodec)
+  yield mkblock(block)
   counts.blocks++
 
   // transactions in segwit merkle
-  for await (const { cid, bytes } of bitcoinTxCodec.encodeAllNoWitness(block)) {
+  for (const { cid, bytes } of bitcoinTxCodec.encodeAllNoWitness(block)) {
     if (cidSet.has(cid.toString())) {
       counts.duplicates++
       continue
@@ -48,14 +69,14 @@ export async function * encodeAll (block) {
     }
   }
 
-  const segWit = BitcoinTransaction.isPorcelainSegWit(block.tx[0])
+  const segWit = BitcoinBlockTransaction.isPorcelainSegWit(/** @type {TransactionPorcelain} */ (block.tx[0]))
   if (!segWit) {
     // console.log(counts)
     return
   }
 
   let lastCid
-  for await (const { cid, bytes } of bitcoinTxCodec.encodeAll(block)) {
+  for (const { cid, bytes } of bitcoinTxCodec.encodeAll(block)) {
     lastCid = cid
     if (cidSet.has(cid.toString())) {
       counts.duplicates++
@@ -79,7 +100,7 @@ export async function * encodeAll (block) {
     }
   }
 
-  yield await bitcoinWitnessCommitmentCodec.encodeWitnessCommitment(block, lastCid)
+  yield bitcoinWitnessCommitmentCodec.encodeWitnessCommitment(block, lastCid)
   // counts.blocks++
   // console.log(counts)
 }
@@ -89,13 +110,18 @@ export async function * encodeAll (block) {
  *
  * The loader should be able to return the binary form for `bitcoin-block`, `bitcoin-tx` and `bitcoin-witness-commitment` CIDs.
  *
- * @param {function} loader an IPLD block loader function that takes a CID argument and returns a `Buffer` or `Uint8Array` containing the binary block data for that CID
- * @param {CID} blockCID a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
- * @returns {object} an object containing two properties, `deserialized` and `bytes` where `deserialized` contains a full JavaScript instantiation of the Bitcoin block graph and `bytes` contains a `Uint8Array` with the binary representation of the graph.
+ * @param {(cid:CID)=>Promise<Uint8Array>} loader an IPLD block loader function that takes a CID argument and returns a `Buffer` or `Uint8Array` containing the binary block data for that CID
+ * @param {CID} blockCid a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
+ * @returns {Promise<{deserialized:BlockPorcelain, bytes:Uint8Array}>} an object containing two properties, `deserialized` and `bytes` where `deserialized` contains a full JavaScript instantiation of the Bitcoin block graph and `bytes` contains a `Uint8Array` with the binary representation of the graph.
  * @function
  */
 export async function assemble (loader, blockCid) {
+  /** @type {Record<string, BitcoinTransaction|BitcoinTransactionMerkleNode>} */
   const merkleCache = {}
+  /**
+   * @param {CID} txCid
+   * @returns {Promise<BitcoinTransaction|BitcoinTransactionMerkleNode>}
+   */
   async function loadTx (txCid) {
     const txCidStr = txCid.toString()
     if (merkleCache[txCidStr]) {
@@ -106,7 +132,7 @@ export async function assemble (loader, blockCid) {
     return node
   }
 
-  const block = bitcoinBlockCodec.decode(await loader(blockCid))
+  const block = /** @type {any} */ (bitcoinBlockCodec.decode(await loader(blockCid)))
   let merkleRootCid = block.tx
 
   const coinbase = await (async () => {
@@ -118,11 +144,15 @@ export async function assemble (loader, blockCid) {
       if (Array.isArray(node)) { // merkle node
         txCid = node[0]
       } else { // transaction
-        return node
+        return /** @type {BitcoinTransaction} */ (node)
       }
     }
   })()
 
+  /**
+   * @param {CID} txCid
+   * @returns {AsyncIterableIterator<BitcoinTransaction|BitcoinTransactionMerkleNode>}
+   */
   async function * transactions (txCid) {
     const node = await loadTx(txCid)
     if (Array.isArray(node)) {
@@ -150,7 +180,7 @@ export async function assemble (loader, blockCid) {
 
     // insert the nonce into the coinbase
     coinbase.vin[0].txinwitness = [toHex(witnessCommitment.nonce)]
-    // nullify the hash so txid!==hash and BitcoinTransaction.fromPorcelain() will interpret it as a segwit
+    // nullify the hash so txid!==hash and BitcoinBlockTransaction.fromPorcelain() will interpret it as a segwit
     coinbase.hash = ''.padStart(64, '0')
 
     if (witnessCommitment.witnessMerkleRoot !== null) {
@@ -165,10 +195,11 @@ export async function assemble (loader, blockCid) {
   }
 
   block.tx = txs
+  block.nTx = txs.length
 
-  const bb = BitcoinBlock.fromPorcelain(block)
+  const bb = BitcoinBlock.fromPorcelain(/** @type {BlockPorcelain} */ (block))
   return {
-    deserialized: bb.toPorcelain(),
+    deserialized: /** @type {BlockPorcelain} */ (bb.toPorcelain()),
     bytes: bb.encode()
   }
 }

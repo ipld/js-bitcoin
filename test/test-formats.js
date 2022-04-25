@@ -168,6 +168,7 @@ describe('formats', () => {
     }
 
     after(async () => {
+      /*
       for (const name of fixtures.names) {
         try {
           await fs.promises.unlink(`${name}.car`)
@@ -177,6 +178,7 @@ describe('formats', () => {
           }
         }
       }
+      */
     })
   })
 })
