@@ -33,7 +33,7 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
   }
 
   if (witnessMerkleRoot !== null && !(witnessMerkleRoot instanceof Uint8Array) && !CID.asCID(witnessMerkleRoot)) {
-    throw new TypeError('witnessMerkleRoot must be a Buffer or CID')
+    throw new TypeError('witnessMerkleRoot must be a Uint8Array or CID')
   }
 
   let merkleRootHash
@@ -110,7 +110,7 @@ export function encode (node) {
     throw new TypeError('bitcoin-witness-commitment must be an object')
   }
   if (!(node.nonce instanceof Uint8Array)) {
-    throw new TypeError('bitcoin-witness-commitment must have a `nonce` Buffer')
+    throw new TypeError('bitcoin-witness-commitment must have a `nonce` Uint8Array')
   }
   const witnessMerkleRoot = CID.asCID(node.witnessMerkleRoot)
   if (!witnessMerkleRoot) {
@@ -143,10 +143,10 @@ export function encode (node) {
  */
 export function decode (data) {
   if (!(data instanceof Uint8Array && data.constructor.name === 'Uint8Array')) {
-    throw new TypeError('Can only decode() a Buffer or Uint8Array')
+    throw new TypeError('Can only decode() a Uint8Array')
   }
   if (data.length !== 64) {
-    throw new TypeError('bitcoin-witness-commitment must be a 64-byte Buffer')
+    throw new TypeError('bitcoin-witness-commitment must be a 64-byte Uint8Array')
   }
   const witnessHash = data.subarray(0, 32)
   const nonce = data.subarray(32)

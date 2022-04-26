@@ -6,7 +6,9 @@
   "type": "module",
   "main": "src/bitcoin.js",
   "scripts": {
-    "test": "npm run build && mocha test/test-*.js",
+    "test": "npm run build && npm run test:node && npm run test:browser",
+    "test:node": "mocha test/test-*.js test/node-test-*.js",
+    "test:browser": "polendina --cleanup --runner=mocha --timeout 240 test/test-*.js",
     "pretest": "standard",
     "docs": "jsdoc4readme --readme src/bitcoin.js src/util.js src/complete.js src/bitcoin-block.js src/bitcoin-tx.js src/bitcoin-witness-commitment.js src/dbl-sha2-256.js",
     "build:types": "tsc --build",
@@ -30,6 +32,10 @@
     },
     "./dbl-sha2-256": {
       "import": "./src/dbl-sha2-256.js"
+    },
+    "./test/fixtures-load.js": {
+      "browser": "./test/fixtures-load-browser.js",
+      "import": "./test/fixtures-load.js"
     }
   },
   "repository": {
@@ -50,13 +56,14 @@
     "multiformats": "^9.6.4"
   },
   "devDependencies": {
-    "@ipld/car": "^4.1.1",
+    "@ipld/car": "^4.1.2",
     "@ipld/dag-cbor": "^7.0.1",
     "@types/chai": "^4.3.1",
     "@types/mocha": "^9.1.1",
     "chai": "^4.3.6",
     "jsdoc4readme": "^1.4.0",
     "mocha": "^9.2.2",
+    "polendina": "^2.0.15",
     "standard": "^17.0.0",
     "typescript": "^4.6.3"
   },
