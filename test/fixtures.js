@@ -1,6 +1,3 @@
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import { fixture as txFixtureGenesis } from './fixtures/genesis.tx.js'
 import { fixture as txFixture300096 } from './fixtures/300096.tx.js'
 import { fixture as txFixture310465 } from './fixtures/310465.tx.js'
@@ -13,6 +10,7 @@ import { fixture as txFixture551515 } from './fixtures/551515.tx.js'
 import { fixture as txFixtureSegwit } from './fixtures/segwit.tx.js'
 import { fixture as txFixtureSegwit2 } from './fixtures/segwit2.tx.js'
 import { fixture as txFixtureSegwit3 } from './fixtures/segwit3.tx.js'
+import { loadFixtureData } from '@ipld/bitcoin/test/fixtures-load.js'
 
 // the 'tx' data found in fixtures/*.tx.js can be generated with some
 // debugging code found near the bottom of bitcoin-block/classes/Transaction.js
@@ -135,23 +133,8 @@ export const meta = {
   }
 }
 
-const cache = {}
-
-export async function loadFixture (name) {
-  if (!cache[name]) {
-    const [data, rawHex] = await Promise.all(process.browser
-      ? [
-          (async () => (await import(`./fixtures/${name}.json`)).default)(),
-          (async () => (await import(`!!raw-loader!./fixtures/${name}.hex`)).default)()
-        ]
-      : [
-          (async () => JSON.parse(await fs.promises.readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), `fixtures/${name}.json`), 'utf8')))(),
-          fs.promises.readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), `fixtures/${name}.hex`), 'ascii')
-        ])
-
-    cache[name] = { meta: meta[name], data, raw: Buffer.from(rawHex, 'hex') }
-  }
-  return cache[name]
-}
-
 export const names = Object.keys(meta)
+export async function loadFixture (name) {
+  const { data, raw } = await loadFixtureData(name)
+  return { meta: meta[name], data, raw }
+}

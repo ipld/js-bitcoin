@@ -8,7 +8,8 @@ import { setupBlocks, fixtureNames, roundDifficulty } from './util.js'
 describe('header', () => {
   let blocks
 
-  before(async () => {
+  before(async function () {
+    this.timeout(60000)
     blocks = await setupBlocks()
   })
 

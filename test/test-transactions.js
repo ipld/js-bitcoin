@@ -16,7 +16,8 @@ import {
 describe('transactions', () => {
   let blocks
 
-  before(async () => {
+  before(async function () {
+    this.timeout(60000)
     blocks = await setupBlocks()
   })
 

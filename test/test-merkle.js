@@ -16,7 +16,8 @@ const { toHex } = bytes
 describe('merkle', () => {
   let blocks
 
-  before(async () => {
+  before(async function () {
+    this.timeout(60000)
     blocks = await setupBlocks()
   })
 
