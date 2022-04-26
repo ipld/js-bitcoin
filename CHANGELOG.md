@@ -1,3 +1,10 @@
+### [1.0.1](https://github.com/ipld/js-bitcoin/compare/v1.0.0...v1.0.1) (2022-04-26)
+
+
+### Bug Fixes
+
+* publish as public ([54ad017](https://github.com/ipld/js-bitcoin/commit/54ad01787aef3078e67bf45cf8453669c408c5bd))
+
 ## 1.0.0 (2022-04-26)
 
 
