@@ -38,6 +38,9 @@
       "import": "./test/fixtures-load.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ipld/js-bitcoin.git"
