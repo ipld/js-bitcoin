@@ -1,5 +1,6 @@
 import { BitcoinTransaction as BitcoinBlockTransaction, fromHashHex, merkle } from 'bitcoin-block'
-import { CID, bytes } from 'multiformats'
+import { bytes } from 'multiformats'
+import { create as createCID, asCID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT_CODE } from './constants.js'
 
@@ -11,6 +12,7 @@ import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT_CODE } from './consta
 /** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
 /** @typedef {import('./interface').BitcoinTransaction} BitcoinTransaction */
 /** @typedef {import('./interface').BitcoinTransactionMerkleNode} BitcoinTransactionMerkleNode */
+/** @typedef {import('./interface').BitcoinTxCID} BitcoinTxCID */
 
 /** @ignore */
 const NULL_HASH = new Uint8Array(32)
@@ -46,11 +48,11 @@ function _encode (node, noWitness) {
 export function encode (node) {
   if (Array.isArray(node)) {
     const bytes = new Uint8Array(64)
-    const leftCid = CID.asCID(node[0])
+    const leftCid = asCID(node[0])
     if (leftCid != null) {
       bytes.set(leftCid.multihash.digest)
     }
-    const rightCid = CID.asCID(node[1])
+    const rightCid = asCID(node[1])
     if (rightCid == null) {
       throw new TypeError('Expected BitcoinTransactionMerkleNode to be [CID|null,CID]')
     }
@@ -80,7 +82,7 @@ export function encodeNoWitness (node) {
  *
  * @param {BlockPorcelain} deserialized
  * @param {BitcoinBlockTransaction.HASH_NO_WITNESS} [noWitness]
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  * @private
  * @ignore
  */
@@ -109,7 +111,7 @@ function * _encodeAll (deserialized, noWitness) {
     (deserialized.tx[ii])
     const { transaction, bytes } = _encode(tx, noWitness)
     const mh = dblSha2256.digest(bytes)
-    const cid = CID.create(1, CODEC_TX_CODE, mh)
+    const cid = createCID(1, CODEC_TX_CODE, mh)
     yield { cid, bytes, transaction } // base tx
     hashes.push(mh.digest)
   }
@@ -117,7 +119,7 @@ function * _encodeAll (deserialized, noWitness) {
   for (const { hash, data } of merkle(hashes)) {
     if (data) {
       const mh = dblSha2256.digestFrom(hash)
-      const cid = CID.create(1, CODEC_TX_CODE, mh)
+      const cid = createCID(1, CODEC_TX_CODE, mh)
       const bytes = new Uint8Array(64)
       bytes.set(data[0], 0)
       bytes.set(data[1], 32)
@@ -137,7 +139,7 @@ function * _encodeAll (deserialized, noWitness) {
  *
  * @name BitcoinTransaction.encodeAll()
  * @param {BlockPorcelain} obj
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
 export function * encodeAll (obj) {
   yield * _encodeAll(obj)
@@ -150,7 +152,7 @@ export function * encodeAll (obj) {
  *
  * @name BitcoinTransaction.encodeAllNoWitness()
  * @param {BlockPorcelain} obj
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
 export function * encodeAllNoWitness (obj) {
   yield * _encodeAll(obj, BitcoinBlockTransaction.HASH_NO_WITNESS)
@@ -211,8 +213,8 @@ export function decode (data) {
     }
     const leftMh = left != null ? dblSha2256.digestFrom(left) : null
     const rightMh = dblSha2256.digestFrom(right)
-    const leftCid = leftMh != null ? CID.create(1, CODEC_TX_CODE, leftMh) : null
-    const rightCid = CID.create(1, CODEC_TX_CODE, rightMh)
+    const leftCid = leftMh != null ? createCID(1, CODEC_TX_CODE, leftMh) : null
+    const rightCid = createCID(1, CODEC_TX_CODE, rightMh)
     return [leftCid, rightCid]
   }
 
@@ -229,14 +231,14 @@ export function decode (data) {
       // witness commitment and we can't discriminate at this point -- we can only do that by trying to
       // load the witness commitment from the generated CID
       const witnessCommitmentMh = dblSha2256.digestFrom(witnessCommitment)
-      const witnessCommitmentCid = CID.create(1, CODEC_WITNESS_COMMITMENT_CODE, witnessCommitmentMh)
+      const witnessCommitmentCid = createCID(1, CODEC_WITNESS_COMMITMENT_CODE, witnessCommitmentMh)
       deserialized.witnessCommitment = witnessCommitmentCid
     }
   }
   for (const vin of deserialized.vin) {
     if (typeof vin.txid === 'string' && /^[0-9a-f]{64}$/.test(vin.txid)) {
       const txidMh = dblSha2256.digestFrom(fromHashHex(vin.txid))
-      vin.tx = CID.create(1, CODEC_TX_CODE, txidMh)
+      vin.tx = createCID(1, CODEC_TX_CODE, txidMh)
     }
   }
 
@@ -260,7 +262,7 @@ export const code = CODEC_TX_CODE
  * The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-tx` multicodec. This process is reversable, see {@link cidToHash}.
  *
  * @param {string} txHash a string form of a transaction hash
- * @returns {CID} A CID (`multiformats.CID`) object representing this transaction identifier.
+ * @returns {BitcoinTxCID} A CID (`multiformats.CID`) object representing this transaction identifier.
  * @name BitcoinTransaction.txHashToCID()
  */
 export function txHashToCID (txHash) {
@@ -268,7 +270,7 @@ export function txHashToCID (txHash) {
     txHash = bytes.toHex(txHash)
   }
   const digest = dblSha2256.digestFrom(fromHashHex(txHash))
-  return CID.create(1, CODEC_TX_CODE, digest)
+  return createCID(1, CODEC_TX_CODE, digest)
 }
 
 /**

@@ -1,10 +1,14 @@
-import { CID } from 'multiformats/cid'
+import { parse as parseCID, asCID } from 'multiformats/cid'
 import { BitcoinBlock, toHashHex } from 'bitcoin-block'
 import * as block from './bitcoin-block.js'
 import * as tx from './bitcoin-tx.js'
 
 export const blockHashToCID = block.blockHashToCID
 export const txHashToCID = tx.txHashToCID
+
+/**
+ * @typedef {import('multiformats/interface').CID} CID
+ */
 
 /** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
 
@@ -64,9 +68,9 @@ export function serializeFullBitcoinBytes (obj) {
  */
 export function cidToHash (cid) {
   if (typeof cid === 'string') {
-    cid = CID.parse(cid)
+    cid = parseCID(cid)
   }
-  const acid = CID.asCID(cid)
+  const acid = asCID(cid)
   if (!acid) {
     throw new TypeError('Must provide a CID or a CID string')
   }

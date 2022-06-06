@@ -1,5 +1,6 @@
 import { BitcoinBlock, fromHashHex } from 'bitcoin-block'
-import { CID, bytes } from 'multiformats'
+import { bytes } from 'multiformats'
+import { create as createCID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_BLOCK, CODEC_BLOCK_CODE, CODEC_TX_CODE } from './constants.js'
 
@@ -8,9 +9,8 @@ import { CODEC_BLOCK, CODEC_BLOCK_CODE, CODEC_TX_CODE } from './constants.js'
  * @typedef {import('multiformats/codecs/interface').ByteView<T>} ByteView
 */
 
-/**
- * @typedef {import('./interface').BitcoinHeader} BitcoinHeader
- */
+/** @typedef {import('./interface').BitcoinHeader} BitcoinHeader */
+/** @typedef {import('./interface').BitcoinBlockCID} BitcoinBlockCID */
 
 /**
  * **`bitcoin-block` / `0xb0` codec**: Encodes an IPLD node representing a
@@ -46,13 +46,13 @@ export function decode (data) {
   // insert links derived from native hash hex strings
   if (deserialized.previousblockhash) {
     const parentDigest = dblSha2256.digestFrom(fromHashHex(deserialized.previousblockhash))
-    deserialized.parent = CID.create(1, CODEC_BLOCK_CODE, parentDigest)
+    deserialized.parent = createCID(1, CODEC_BLOCK_CODE, parentDigest)
   } else {
     // genesis
     deserialized.parent = null
   }
   const txDigest = dblSha2256.digestFrom(fromHashHex(deserialized.merkleroot))
-  deserialized.tx = CID.create(1, CODEC_TX_CODE, txDigest)
+  deserialized.tx = createCID(1, CODEC_TX_CODE, txDigest)
 
   return deserialized
 }
@@ -74,7 +74,7 @@ export const code = CODEC_BLOCK_CODE
  * The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-block` multicodec. This process is reversable, see {@link cidToHash}.
  *
  * @param {string} blockHash a string form of a block hash
- * @returns {CID} a CID object representing this block identifier.
+ * @returns {BitcoinBlockCID} a CID object representing this block identifier.
  * @name BitcoinBlock.blockHashToCID()
  */
 export function blockHashToCID (blockHash) {
@@ -82,5 +82,5 @@ export function blockHashToCID (blockHash) {
     blockHash = bytes.toHex(blockHash)
   }
   const digest = dblSha2256.digestFrom(fromHashHex(blockHash))
-  return CID.create(1, CODEC_BLOCK_CODE, digest)
+  return createCID(1, CODEC_BLOCK_CODE, digest)
 }

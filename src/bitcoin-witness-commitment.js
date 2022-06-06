@@ -1,5 +1,5 @@
 import { BitcoinTransaction } from 'bitcoin-block'
-import { CID } from 'multiformats'
+import { create as createCID, asCID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT, CODEC_WITNESS_COMMITMENT_CODE } from './constants.js'
 
@@ -9,6 +9,8 @@ import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT, CODEC_WITNESS_COMMIT
 */
 /** @typedef {import('bitcoin-block/classes/Block').BlockPorcelain} BlockPorcelain */
 /** @typedef {import('./interface').BitcoinWitnessCommitment} BitcoinWitnessCommitment */
+/** @typedef {import('./interface').BitcoinTxCID} BitcoinTxCID */
+/** @typedef {import('./interface').BitcoinWitnessCommitmentCID} BitcoinWitnessCommitmentCID */
 
 /** @ignore */
 const NULL_HASH = new Uint8Array(32)
@@ -23,8 +25,8 @@ const NULL_HASH = new Uint8Array(32)
 
 /**
  * @param {import('bitcoin-block/classes/Block').BlockPorcelain} deserialized
- * @param {CID|null} witnessMerkleRoot
- * @returns {{cid:CID, bytes:Uint8Array}|null}
+ * @param {BitcoinTxCID|null} witnessMerkleRoot
+ * @returns {{cid:BitcoinWitnessCommitmentCID, bytes:Uint8Array}|null}
  * @ignore
  */
 export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
@@ -32,7 +34,7 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
     throw new TypeError('deserialized argument must be a Bitcoin block representation')
   }
 
-  if (witnessMerkleRoot !== null && !(witnessMerkleRoot instanceof Uint8Array) && !CID.asCID(witnessMerkleRoot)) {
+  if (witnessMerkleRoot !== null && !(witnessMerkleRoot instanceof Uint8Array) && !asCID(witnessMerkleRoot)) {
     throw new TypeError('witnessMerkleRoot must be a Uint8Array or CID')
   }
 
@@ -45,7 +47,7 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
     merkleRootHash = witnessMerkleRoot
   } else {
     // CID
-    const mrhcid = CID.asCID(witnessMerkleRoot)
+    const mrhcid = asCID(witnessMerkleRoot)
     if (mrhcid == null) {
       throw new TypeError('Expected witnessMerkleRoot to be a CID')
     }
@@ -87,7 +89,7 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
   }
 
   const mh = dblSha2256.digestFrom(hash)
-  const cid = CID.create(1, CODEC_WITNESS_COMMITMENT_CODE, mh)
+  const cid = createCID(1, CODEC_WITNESS_COMMITMENT_CODE, mh)
 
   return { cid, bytes }
 }
@@ -112,7 +114,7 @@ export function encode (node) {
   if (!(node.nonce instanceof Uint8Array)) {
     throw new TypeError('bitcoin-witness-commitment must have a `nonce` Uint8Array')
   }
-  const witnessMerkleRoot = CID.asCID(node.witnessMerkleRoot)
+  const witnessMerkleRoot = asCID(node.witnessMerkleRoot)
   if (!witnessMerkleRoot) {
     throw new TypeError('bitcoin-witness-commitment must have a `witnessMerkleRoot` CID')
   }
@@ -154,7 +156,7 @@ export function decode (data) {
   let witnessMerkleRoot = null
   if (!isNullHash(witnessHash)) {
     const witnessDigest = dblSha2256.digestFrom(witnessHash)
-    witnessMerkleRoot = CID.create(1, CODEC_TX_CODE, witnessDigest)
+    witnessMerkleRoot = createCID(1, CODEC_TX_CODE, witnessDigest)
   }
   return { witnessMerkleRoot, nonce }
 }

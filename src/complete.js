@@ -1,4 +1,5 @@
-import { CID, bytes } from 'multiformats'
+import { bytes } from 'multiformats'
+import { create as createCID } from 'multiformats/cid'
 import { BitcoinBlock, BitcoinTransaction as BitcoinBlockTransaction } from 'bitcoin-block'
 import * as bitcoinBlockCodec from './bitcoin-block.js'
 import * as bitcoinTxCodec from './bitcoin-tx.js'
@@ -13,17 +14,20 @@ const { toHex } = bytes
 /** @typedef {import('./interface').IPLDLoader} IPLDLoader */
 /** @typedef {import('./interface').BitcoinTransaction} BitcoinTransaction */
 /** @typedef {import('./interface').BitcoinTransactionMerkleNode} BitcoinTransactionMerkleNode */
+/** @typedef {import('./interface').BitcoinBlockCID} BitcoinBlockCID */
+/** @typedef {import('./interface').BitcoinTxCID} BitcoinTxCID */
+/** @typedef {import('./interface').BitcoinWitnessCommitmentCID} BitcoinWitnessCommitmentCID */
 
 /**
  * @param {any} obj
- * @returns {{cid:CID, bytes:Uint8Array}}
+ * @returns {{cid:BitcoinBlockCID, bytes:Uint8Array}}
  * @ignore
  */
 function mkblock (obj) {
   const bytes = bitcoinBlockCodec.encode(obj)
   const mh = dblSha256.digest(bytes)
   return {
-    cid: CID.create(1, bitcoinBlockCodec.code, mh),
+    cid: createCID(1, bitcoinBlockCodec.code, mh),
     bytes
   }
 }
@@ -38,7 +42,7 @@ function mkblock (obj) {
  *
  * @name Bitcoin.encodeAll()
  * @param {BlockPorcelain} block
- * @returns {IterableIterator<{cid: CID, bytes: Uint8Array}>}
+ * @returns {IterableIterator<{cid: BitcoinBlockCID|BitcoinTxCID|BitcoinWitnessCommitmentCID, bytes: Uint8Array}>}
  */
 export function * encodeAll (block) {
   if (typeof block !== 'object' || !Array.isArray(block.tx)) {
@@ -135,7 +139,7 @@ export function * encodeAll (block) {
  * `bitcoin-tx` and `bitcoin-witness-commitment` CIDs.
  *
  * @param {IPLDLoader} loader an IPLD block loader function that takes a CID argument and returns a `Uint8Array` containing the binary block data for that CID
- * @param {CID} blockCid a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
+ * @param {BitcoinBlockCID} blockCid a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
  * @returns {Promise<{deserialized:BlockPorcelain, bytes:Uint8Array}>} an object containing two properties, `deserialized` and `bytes` where `deserialized` contains a full JavaScript instantiation of the Bitcoin block graph and `bytes` contains a `Uint8Array` with the binary representation of the graph.
  * @name Bitcoin.assemble()
  */
@@ -146,7 +150,7 @@ export async function assemble (loader, blockCid) {
    */
   const merkleCache = {}
   /**
-   * @param {CID} txCid
+   * @param {BitcoinTxCID} txCid
    * @returns {Promise<BitcoinTransaction|BitcoinTransactionMerkleNode>}
    * @ignore
    */
@@ -178,7 +182,7 @@ export async function assemble (loader, blockCid) {
   })()
 
   /**
-   * @param {CID} txCid
+   * @param {BitcoinTxCID} txCid
    * @returns {AsyncIterableIterator<BitcoinTransaction|BitcoinTransactionMerkleNode>}
    * @ignore
    */
