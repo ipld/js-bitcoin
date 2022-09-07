@@ -1,5 +1,5 @@
 /**
- * @typedef {import('multiformats/interface').CID} CID
+ * @typedef {import('multiformats/link').Link} Link
  */
 /** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
 /**
@@ -42,14 +42,14 @@ export function serializeFullBitcoinBytes(obj: BlockPorcelain): Uint8Array;
  * Works for both block identifiers and transaction identifiers.
  *
  * @name Bitcoin.cidToHash()
- * @param {CID|string} cid a CID
+ * @param {Link|string} cid a CID
  * @returns {string} a hexadecimal big-endian representation of the identifier.
  * @function
  */
-export function cidToHash(cid: CID | string): string;
+export function cidToHash(cid: Link | string): string;
 export const blockHashToCID: typeof block.blockHashToCID;
 export const txHashToCID: typeof tx.txHashToCID;
-export type CID = import('multiformats/interface').CID;
+export type Link = import('multiformats/link').Link;
 export type BlockPorcelain = import('bitcoin-block/interface').BlockPorcelain;
 import * as block from "./bitcoin-block.js";
 import * as tx from "./bitcoin-tx.js";

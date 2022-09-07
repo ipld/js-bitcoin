@@ -1,6 +1,6 @@
 import { BitcoinBlock, fromHashHex } from 'bitcoin-block'
 import { bytes } from 'multiformats'
-import { create as createCID } from 'multiformats/cid'
+import { CID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_BLOCK, CODEC_BLOCK_CODE, CODEC_TX_CODE } from './constants.js'
 
@@ -46,13 +46,13 @@ export function decode (data) {
   // insert links derived from native hash hex strings
   if (deserialized.previousblockhash) {
     const parentDigest = dblSha2256.digestFrom(fromHashHex(deserialized.previousblockhash))
-    deserialized.parent = createCID(1, CODEC_BLOCK_CODE, parentDigest)
+    deserialized.parent = CID.create(1, CODEC_BLOCK_CODE, parentDigest)
   } else {
     // genesis
     deserialized.parent = null
   }
   const txDigest = dblSha2256.digestFrom(fromHashHex(deserialized.merkleroot))
-  deserialized.tx = createCID(1, CODEC_TX_CODE, txDigest)
+  deserialized.tx = CID.create(1, CODEC_TX_CODE, txDigest)
 
   return deserialized
 }
@@ -82,5 +82,5 @@ export function blockHashToCID (blockHash) {
     blockHash = bytes.toHex(blockHash)
   }
   const digest = dblSha2256.digestFrom(fromHashHex(blockHash))
-  return createCID(1, CODEC_BLOCK_CODE, digest)
+  return CID.create(1, CODEC_BLOCK_CODE, digest)
 }

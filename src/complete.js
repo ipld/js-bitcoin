@@ -1,5 +1,5 @@
 import { bytes } from 'multiformats'
-import { create as createCID } from 'multiformats/cid'
+import { CID } from 'multiformats/cid'
 import { BitcoinBlock, BitcoinTransaction as BitcoinBlockTransaction } from 'bitcoin-block'
 import * as bitcoinBlockCodec from './bitcoin-block.js'
 import * as bitcoinTxCodec from './bitcoin-tx.js'
@@ -27,7 +27,7 @@ function mkblock (obj) {
   const bytes = bitcoinBlockCodec.encode(obj)
   const mh = dblSha256.digest(bytes)
   return {
-    cid: createCID(1, bitcoinBlockCodec.code, mh),
+    cid: CID.create(1, bitcoinBlockCodec.code, mh),
     bytes
   }
 }

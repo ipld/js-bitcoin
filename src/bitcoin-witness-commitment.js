@@ -1,5 +1,5 @@
 import { BitcoinTransaction } from 'bitcoin-block'
-import { create as createCID, asCID } from 'multiformats/cid'
+import { CID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT, CODEC_WITNESS_COMMITMENT_CODE } from './constants.js'
 
@@ -34,7 +34,7 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
     throw new TypeError('deserialized argument must be a Bitcoin block representation')
   }
 
-  if (witnessMerkleRoot !== null && !(witnessMerkleRoot instanceof Uint8Array) && !asCID(witnessMerkleRoot)) {
+  if (witnessMerkleRoot !== null && !(witnessMerkleRoot instanceof Uint8Array) && !CID.asCID(witnessMerkleRoot)) {
     throw new TypeError('witnessMerkleRoot must be a Uint8Array or CID')
   }
 
@@ -47,7 +47,7 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
     merkleRootHash = witnessMerkleRoot
   } else {
     // CID
-    const mrhcid = asCID(witnessMerkleRoot)
+    const mrhcid = CID.asCID(witnessMerkleRoot)
     if (mrhcid == null) {
       throw new TypeError('Expected witnessMerkleRoot to be a CID')
     }
@@ -89,7 +89,7 @@ export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {
   }
 
   const mh = dblSha2256.digestFrom(hash)
-  const cid = createCID(1, CODEC_WITNESS_COMMITMENT_CODE, mh)
+  const cid = CID.create(1, CODEC_WITNESS_COMMITMENT_CODE, mh)
 
   return { cid, bytes }
 }
@@ -114,7 +114,7 @@ export function encode (node) {
   if (!(node.nonce instanceof Uint8Array)) {
     throw new TypeError('bitcoin-witness-commitment must have a `nonce` Uint8Array')
   }
-  const witnessMerkleRoot = asCID(node.witnessMerkleRoot)
+  const witnessMerkleRoot = CID.asCID(node.witnessMerkleRoot)
   if (!witnessMerkleRoot) {
     throw new TypeError('bitcoin-witness-commitment must have a `witnessMerkleRoot` CID')
   }
@@ -156,7 +156,7 @@ export function decode (data) {
   let witnessMerkleRoot = null
   if (!isNullHash(witnessHash)) {
     const witnessDigest = dblSha2256.digestFrom(witnessHash)
-    witnessMerkleRoot = createCID(1, CODEC_TX_CODE, witnessDigest)
+    witnessMerkleRoot = CID.create(1, CODEC_TX_CODE, witnessDigest)
   }
   return { witnessMerkleRoot, nonce }
 }
