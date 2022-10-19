@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@ipld/car": "^4.1.2",
-    "@ipld/dag-cbor": "^7.0.1",
+    "@ipld/dag-cbor": "^8.0.0",
     "@types/chai": "^4.3.1",
     "@types/mocha": "^10.0.0",
     "chai": "^4.3.6",
