@@ -1,3 +1,20 @@
+## [1.0.2](https://github.com/ipld/js-bitcoin/compare/v1.0.1...v1.0.2) (2023-01-03)
+
+
+### Trivial Changes
+
+* **deps:** bump actions/checkout from 3.1.0 to 3.2.0 ([#21](https://github.com/ipld/js-bitcoin/issues/21)) ([cd5240a](https://github.com/ipld/js-bitcoin/commit/cd5240aa433414dd26367c6f282bca9093e70bbc))
+* **no-release:** bump @types/mocha from 9.1.1 to 10.0.0 ([#12](https://github.com/ipld/js-bitcoin/issues/12)) ([911c25c](https://github.com/ipld/js-bitcoin/commit/911c25c7db0220586db0db489d64852c83463057))
+* **no-release:** bump actions/checkout from 3.0.2 to 3.1.0 ([#13](https://github.com/ipld/js-bitcoin/issues/13)) ([0240a4b](https://github.com/ipld/js-bitcoin/commit/0240a4b54d862dbac52a735e462c2d60ccd29884))
+* **no-release:** bump actions/setup-node from 3.1.1 to 3.2.0 ([#6](https://github.com/ipld/js-bitcoin/issues/6)) ([b39cb68](https://github.com/ipld/js-bitcoin/commit/b39cb6841ea6512b0024f39e4179389229b251bb))
+* **no-release:** bump actions/setup-node from 3.2.0 to 3.3.0 ([#8](https://github.com/ipld/js-bitcoin/issues/8)) ([262d699](https://github.com/ipld/js-bitcoin/commit/262d699b3e7e04d649a7568560b13d6a5f157f91))
+* **no-release:** bump actions/setup-node from 3.3.0 to 3.4.0 ([#9](https://github.com/ipld/js-bitcoin/issues/9)) ([5e2d9cb](https://github.com/ipld/js-bitcoin/commit/5e2d9cb7a3a7289dc2518c0879d83a6321d7cd4a))
+* **no-release:** bump actions/setup-node from 3.4.0 to 3.4.1 ([#10](https://github.com/ipld/js-bitcoin/issues/10)) ([4c77107](https://github.com/ipld/js-bitcoin/commit/4c7710732eeb7d2704d220a711e64a93f8f1b220))
+* **no-release:** bump actions/setup-node from 3.4.1 to 3.5.0 ([#11](https://github.com/ipld/js-bitcoin/issues/11)) ([5ffdc52](https://github.com/ipld/js-bitcoin/commit/5ffdc526c578b2c4fe4136e7cf4f1f85a51e303a))
+* **no-release:** bump actions/setup-node from 3.5.0 to 3.5.1 ([#15](https://github.com/ipld/js-bitcoin/issues/15)) ([42f9364](https://github.com/ipld/js-bitcoin/commit/42f9364c72ff057ff5f3489a715b6d98274c361a))
+* **no-release:** bump mocha from 9.2.2 to 10.0.0 ([#4](https://github.com/ipld/js-bitcoin/issues/4)) ([35ddb4f](https://github.com/ipld/js-bitcoin/commit/35ddb4f6b77352cda6b26d9ec8e15c9bf1c0a510))
+* **no-release:** bump polendina from 2.0.15 to 3.0.0 ([#5](https://github.com/ipld/js-bitcoin/issues/5)) ([01385f6](https://github.com/ipld/js-bitcoin/commit/01385f6bc159ff2c48493bf8d5245ddfaf64d92e))
+
 ### [1.0.1](https://github.com/ipld/js-bitcoin/compare/v1.0.0...v1.0.1) (2022-04-26)
 
 
