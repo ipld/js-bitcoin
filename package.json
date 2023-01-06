@@ -59,7 +59,7 @@
     "multiformats": "^9.6.4"
   },
   "devDependencies": {
-    "@ipld/car": "^4.1.2",
+    "@ipld/car": "^5.0.1",
     "@ipld/dag-cbor": "^9.0.0",
     "@types/chai": "^4.3.1",
     "@types/mocha": "^10.0.0",
