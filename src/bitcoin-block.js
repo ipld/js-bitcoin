@@ -1,5 +1,6 @@
 import { BitcoinBlock, fromHashHex } from 'bitcoin-block'
-import { CID, bytes } from 'multiformats'
+import { bytes } from 'multiformats'
+import { CID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_BLOCK, CODEC_BLOCK_CODE, CODEC_TX_CODE } from './constants.js'
 
@@ -8,9 +9,8 @@ import { CODEC_BLOCK, CODEC_BLOCK_CODE, CODEC_TX_CODE } from './constants.js'
  * @typedef {import('multiformats/codecs/interface').ByteView<T>} ByteView
 */
 
-/**
- * @typedef {import('./interface').BitcoinHeader} BitcoinHeader
- */
+/** @typedef {import('./interface').BitcoinHeader} BitcoinHeader */
+/** @typedef {import('./interface').BitcoinBlockCID} BitcoinBlockCID */
 
 /**
  * **`bitcoin-block` / `0xb0` codec**: Encodes an IPLD node representing a
@@ -74,7 +74,7 @@ export const code = CODEC_BLOCK_CODE
  * The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-block` multicodec. This process is reversable, see {@link cidToHash}.
  *
  * @param {string} blockHash a string form of a block hash
- * @returns {CID} a CID object representing this block identifier.
+ * @returns {BitcoinBlockCID} a CID object representing this block identifier.
  * @name BitcoinBlock.blockHashToCID()
  */
 export function blockHashToCID (blockHash) {

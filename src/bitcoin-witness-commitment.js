@@ -1,5 +1,5 @@
 import { BitcoinTransaction } from 'bitcoin-block'
-import { CID } from 'multiformats'
+import { CID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT, CODEC_WITNESS_COMMITMENT_CODE } from './constants.js'
 
@@ -9,6 +9,8 @@ import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT, CODEC_WITNESS_COMMIT
 */
 /** @typedef {import('bitcoin-block/classes/Block').BlockPorcelain} BlockPorcelain */
 /** @typedef {import('./interface').BitcoinWitnessCommitment} BitcoinWitnessCommitment */
+/** @typedef {import('./interface').BitcoinTxCID} BitcoinTxCID */
+/** @typedef {import('./interface').BitcoinWitnessCommitmentCID} BitcoinWitnessCommitmentCID */
 
 /** @ignore */
 const NULL_HASH = new Uint8Array(32)
@@ -23,8 +25,8 @@ const NULL_HASH = new Uint8Array(32)
 
 /**
  * @param {import('bitcoin-block/classes/Block').BlockPorcelain} deserialized
- * @param {CID|null} witnessMerkleRoot
- * @returns {{cid:CID, bytes:Uint8Array}|null}
+ * @param {BitcoinTxCID|null} witnessMerkleRoot
+ * @returns {{cid:BitcoinWitnessCommitmentCID, bytes:Uint8Array}|null}
  * @ignore
  */
 export function encodeWitnessCommitment (deserialized, witnessMerkleRoot) {

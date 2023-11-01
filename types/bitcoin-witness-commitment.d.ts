@@ -1,11 +1,11 @@
 /**
  * @param {import('bitcoin-block/classes/Block').BlockPorcelain} deserialized
- * @param {CID|null} witnessMerkleRoot
- * @returns {{cid:CID, bytes:Uint8Array}|null}
+ * @param {BitcoinTxCID|null} witnessMerkleRoot
+ * @returns {{cid:BitcoinWitnessCommitmentCID, bytes:Uint8Array}|null}
  * @ignore
  */
-export function encodeWitnessCommitment(deserialized: import('bitcoin-block/classes/Block').BlockPorcelain, witnessMerkleRoot: CID | null): {
-    cid: CID;
+export function encodeWitnessCommitment(deserialized: import('bitcoin-block/classes/Block').BlockPorcelain, witnessMerkleRoot: BitcoinTxCID | null): {
+    cid: BitcoinWitnessCommitmentCID;
     bytes: Uint8Array;
 } | null;
 /**
@@ -49,5 +49,6 @@ export const code: 178;
 export type ByteView<T> = import('multiformats/codecs/interface').ByteView<T>;
 export type BlockPorcelain = import('bitcoin-block/classes/Block').BlockPorcelain;
 export type BitcoinWitnessCommitment = import('./interface').BitcoinWitnessCommitment;
-import { CID } from "multiformats";
+export type BitcoinTxCID = import('./interface').BitcoinTxCID;
+export type BitcoinWitnessCommitmentCID = import('./interface').BitcoinWitnessCommitmentCID;
 //# sourceMappingURL=bitcoin-witness-commitment.d.ts.map

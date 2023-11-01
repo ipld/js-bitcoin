@@ -1,5 +1,6 @@
 import { BitcoinTransaction as BitcoinBlockTransaction, fromHashHex, merkle } from 'bitcoin-block'
-import { CID, bytes } from 'multiformats'
+import { bytes } from 'multiformats'
+import { CID } from 'multiformats/cid'
 import * as dblSha2256 from './dbl-sha2-256.js'
 import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT_CODE } from './constants.js'
 
@@ -11,6 +12,7 @@ import { CODEC_TX, CODEC_TX_CODE, CODEC_WITNESS_COMMITMENT_CODE } from './consta
 /** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
 /** @typedef {import('./interface').BitcoinTransaction} BitcoinTransaction */
 /** @typedef {import('./interface').BitcoinTransactionMerkleNode} BitcoinTransactionMerkleNode */
+/** @typedef {import('./interface').BitcoinTxCID} BitcoinTxCID */
 
 /** @ignore */
 const NULL_HASH = new Uint8Array(32)
@@ -80,7 +82,7 @@ export function encodeNoWitness (node) {
  *
  * @param {BlockPorcelain} deserialized
  * @param {BitcoinBlockTransaction.HASH_NO_WITNESS} [noWitness]
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  * @private
  * @ignore
  */
@@ -137,7 +139,7 @@ function * _encodeAll (deserialized, noWitness) {
  *
  * @name BitcoinTransaction.encodeAll()
  * @param {BlockPorcelain} obj
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
 export function * encodeAll (obj) {
   yield * _encodeAll(obj)
@@ -150,7 +152,7 @@ export function * encodeAll (obj) {
  *
  * @name BitcoinTransaction.encodeAllNoWitness()
  * @param {BlockPorcelain} obj
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
 export function * encodeAllNoWitness (obj) {
   yield * _encodeAll(obj, BitcoinBlockTransaction.HASH_NO_WITNESS)
@@ -260,7 +262,7 @@ export const code = CODEC_TX_CODE
  * The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-tx` multicodec. This process is reversable, see {@link cidToHash}.
  *
  * @param {string} txHash a string form of a transaction hash
- * @returns {CID} A CID (`multiformats.CID`) object representing this transaction identifier.
+ * @returns {BitcoinTxCID} A CID (`multiformats.CID`) object representing this transaction identifier.
  * @name BitcoinTransaction.txHashToCID()
  */
 export function txHashToCID (txHash) {

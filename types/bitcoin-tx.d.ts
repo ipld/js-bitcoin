@@ -33,10 +33,10 @@ export function encodeNoWitness(node: BitcoinTransaction): ByteView<BitcoinTrans
  *
  * @name BitcoinTransaction.encodeAll()
  * @param {BlockPorcelain} obj
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
 export function encodeAll(obj: BlockPorcelain): IterableIterator<{
-    cid: CID;
+    cid: BitcoinTxCID;
     bytes: Uint8Array;
     transaction?: BitcoinBlockTransaction;
 }>;
@@ -47,10 +47,10 @@ export function encodeAll(obj: BlockPorcelain): IterableIterator<{
  *
  * @name BitcoinTransaction.encodeAllNoWitness()
  * @param {BlockPorcelain} obj
- * @returns {IterableIterator<{cid:CID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
+ * @returns {IterableIterator<{cid:BitcoinTxCID, bytes:Uint8Array, transaction?:BitcoinBlockTransaction}>}
  */
 export function encodeAllNoWitness(obj: BlockPorcelain): IterableIterator<{
-    cid: CID;
+    cid: BitcoinTxCID;
     bytes: Uint8Array;
     transaction?: BitcoinBlockTransaction;
 }>;
@@ -74,10 +74,10 @@ export function decode(data: ByteView<BitcoinTransaction | BitcoinTransactionMer
  * The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-tx` multicodec. This process is reversable, see {@link cidToHash}.
  *
  * @param {string} txHash a string form of a transaction hash
- * @returns {CID} A CID (`multiformats.CID`) object representing this transaction identifier.
+ * @returns {BitcoinTxCID} A CID (`multiformats.CID`) object representing this transaction identifier.
  * @name BitcoinTransaction.txHashToCID()
  */
-export function txHashToCID(txHash: string): CID;
+export function txHashToCID(txHash: string): BitcoinTxCID;
 /**
  * **`bitcoin-tx` / `0xb1` codec**: the codec name
  * @name BitcoinTransaction.name
@@ -93,7 +93,7 @@ export type TransactionPorcelain = import('bitcoin-block/interface').Transaction
 export type BlockPorcelain = import('bitcoin-block/interface').BlockPorcelain;
 export type BitcoinTransaction = import('./interface').BitcoinTransaction;
 export type BitcoinTransactionMerkleNode = import('./interface').BitcoinTransactionMerkleNode;
-import { CID } from "multiformats";
+export type BitcoinTxCID = import('./interface').BitcoinTxCID;
 import { bytes } from "multiformats";
 import { BitcoinTransaction as BitcoinBlockTransaction } from "bitcoin-block";
 //# sourceMappingURL=bitcoin-tx.d.ts.map

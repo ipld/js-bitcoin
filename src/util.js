@@ -6,6 +6,10 @@ import * as tx from './bitcoin-tx.js'
 export const blockHashToCID = block.blockHashToCID
 export const txHashToCID = tx.txHashToCID
 
+/**
+ * @typedef {import('multiformats/link').Link} Link
+ */
+
 /** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
 
 /**
@@ -58,7 +62,7 @@ export function serializeFullBitcoinBytes (obj) {
  * Works for both block identifiers and transaction identifiers.
  *
  * @name Bitcoin.cidToHash()
- * @param {CID|string} cid a CID
+ * @param {Link|string} cid a CID
  * @returns {string} a hexadecimal big-endian representation of the identifier.
  * @function
  */
