@@ -63,7 +63,7 @@
     "@ipld/dag-cbor": "^9.0.0",
     "@types/chai": "^4.3.1",
     "@types/mocha": "^10.0.0",
-    "chai": "^4.3.6",
+    "chai": "^5.0.0",
     "jsdoc4readme": "^1.4.0",
     "mocha": "^10.0.0",
     "polendina": "^3.0.0",
