@@ -8,10 +8,10 @@
  *
  * @name Bitcoin.encodeAll()
  * @param {BlockPorcelain} block
- * @returns {IterableIterator<{cid: CID, bytes: Uint8Array}>}
+ * @returns {IterableIterator<{cid: BitcoinBlockCID|BitcoinTxCID|BitcoinWitnessCommitmentCID, bytes: Uint8Array}>}
  */
 export function encodeAll(block: BlockPorcelain): IterableIterator<{
-    cid: CID;
+    cid: BitcoinBlockCID | BitcoinTxCID | BitcoinWitnessCommitmentCID;
     bytes: Uint8Array;
 }>;
 /**
@@ -26,11 +26,11 @@ export function encodeAll(block: BlockPorcelain): IterableIterator<{
  * `bitcoin-tx` and `bitcoin-witness-commitment` CIDs.
  *
  * @param {IPLDLoader} loader an IPLD block loader function that takes a CID argument and returns a `Uint8Array` containing the binary block data for that CID
- * @param {CID} blockCid a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
+ * @param {BitcoinBlockCID} blockCid a CID of type `bitcoin-block` pointing to the Bitcoin block header for the block to be assembled
  * @returns {Promise<{deserialized:BlockPorcelain, bytes:Uint8Array}>} an object containing two properties, `deserialized` and `bytes` where `deserialized` contains a full JavaScript instantiation of the Bitcoin block graph and `bytes` contains a `Uint8Array` with the binary representation of the graph.
  * @name Bitcoin.assemble()
  */
-export function assemble(loader: IPLDLoader, blockCid: CID): Promise<{
+export function assemble(loader: IPLDLoader, blockCid: BitcoinBlockCID): Promise<{
     deserialized: BlockPorcelain;
     bytes: Uint8Array;
 }>;
@@ -39,6 +39,8 @@ export type TransactionPorcelain = import('bitcoin-block/interface').Transaction
 export type IPLDLoader = import('./interface').IPLDLoader;
 export type BitcoinTransaction = import('./interface').BitcoinTransaction;
 export type BitcoinTransactionMerkleNode = import('./interface').BitcoinTransactionMerkleNode;
-import { CID } from "multiformats";
+export type BitcoinBlockCID = import('./interface').BitcoinBlockCID;
+export type BitcoinTxCID = import('./interface').BitcoinTxCID;
+export type BitcoinWitnessCommitmentCID = import('./interface').BitcoinWitnessCommitmentCID;
 import { bytes } from "multiformats";
 //# sourceMappingURL=complete.d.ts.map

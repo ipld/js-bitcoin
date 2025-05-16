@@ -2,9 +2,8 @@
  * @template T
  * @typedef {import('multiformats/codecs/interface').ByteView<T>} ByteView
 */
-/**
- * @typedef {import('./interface').BitcoinHeader} BitcoinHeader
- */
+/** @typedef {import('./interface').BitcoinHeader} BitcoinHeader */
+/** @typedef {import('./interface').BitcoinBlockCID} BitcoinBlockCID */
 /**
  * **`bitcoin-block` / `0xb0` codec**: Encodes an IPLD node representing a
  * Bitcoin header object into byte form.
@@ -29,10 +28,10 @@ export function decode(data: ByteView<BitcoinHeader>): BitcoinHeader;
  * The process of converting to a CID involves reversing the hash (to little-endian form), encoding as a `dbl-sha2-256` multihash and encoding as a `bitcoin-block` multicodec. This process is reversable, see {@link cidToHash}.
  *
  * @param {string} blockHash a string form of a block hash
- * @returns {CID} a CID object representing this block identifier.
+ * @returns {BitcoinBlockCID} a CID object representing this block identifier.
  * @name BitcoinBlock.blockHashToCID()
  */
-export function blockHashToCID(blockHash: string): CID;
+export function blockHashToCID(blockHash: string): BitcoinBlockCID;
 /**
  * **`bitcoin-block` / `0xb0` codec**: the codec name
  * @name BitcoinBlock.name
@@ -45,5 +44,5 @@ export const name: "bitcoin-block";
 export const code: 176;
 export type ByteView<T> = import('multiformats/codecs/interface').ByteView<T>;
 export type BitcoinHeader = import('./interface').BitcoinHeader;
-import { CID } from "multiformats";
+export type BitcoinBlockCID = import('./interface').BitcoinBlockCID;
 //# sourceMappingURL=bitcoin-block.d.ts.map

@@ -1,3 +1,6 @@
+/**
+ * @typedef {import('multiformats/link').Link} Link
+ */
 /** @typedef {import('bitcoin-block/interface').BlockPorcelain} BlockPorcelain */
 /**
  * Instantiate a full object form from a full Bitcoin block graph binary representation. This binary form is typically extracted from a Bitcoin network node, such as with the Bitcoin Core `bitcoin-cli` `getblock <identifier> 0` command (which outputs hexadecimal form and therefore needs to be decoded prior to handing to this function). This full binary form can also be obtained from the utility {@link assemble} function which can construct the full graph form of a Bitcoin block from the full IPLD block graph.
@@ -39,15 +42,15 @@ export function serializeFullBitcoinBytes(obj: BlockPorcelain): Uint8Array;
  * Works for both block identifiers and transaction identifiers.
  *
  * @name Bitcoin.cidToHash()
- * @param {CID|string} cid a CID
+ * @param {Link|string} cid a CID
  * @returns {string} a hexadecimal big-endian representation of the identifier.
  * @function
  */
-export function cidToHash(cid: CID | string): string;
+export function cidToHash(cid: Link | string): string;
 export const blockHashToCID: typeof block.blockHashToCID;
 export const txHashToCID: typeof tx.txHashToCID;
+export type Link = import('multiformats/link').Link;
 export type BlockPorcelain = import('bitcoin-block/interface').BlockPorcelain;
-import { CID } from "multiformats/cid";
 import * as block from "./bitcoin-block.js";
 import * as tx from "./bitcoin-tx.js";
 //# sourceMappingURL=util.d.ts.map
